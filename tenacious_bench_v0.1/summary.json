@@ -1,0 +1,314 @@
+{
+  "dataset_name": "Tenacious-Bench v0.1",
+  "dataset_version": "0.1.0-interim",
+  "source_seed_file": "training/data/tenacious_bench_seed_200_v2.jsonl",
+  "total_tasks": 200,
+  "target_split_ratio": {
+    "train": 0.5,
+    "dev": 0.3,
+    "held_out": 0.2
+  },
+  "splits": {
+    "train": {
+      "count": 100,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 20,
+        "overclaimed_signal_or_maturity_claim": 20,
+        "reply_escalation_or_objection_failure": 20,
+        "unsupported_pricing_or_scope_claim": 20,
+        "wrong_crm_hubspot_calendar_next_action": 20
+      },
+      "task_type": {
+        "calendar_decision_judgment": 16,
+        "crm_decision_judgment": 17,
+        "enrichment_judgment": 25,
+        "outreach_judgment": 17,
+        "reply_judgment": 25
+      },
+      "source_mode": {
+        "hand_authored_adversarial": 27,
+        "programmatic": 46,
+        "trace_derived": 27
+      },
+      "difficulty": {
+        "T1_easy": 38,
+        "T2_medium": 30,
+        "T3_hard": 32
+      },
+      "expected_verdict": {
+        "fail": 48,
+        "needs_human_review": 23,
+        "pass": 29
+      }
+    },
+    "dev": {
+      "count": 60,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 12,
+        "overclaimed_signal_or_maturity_claim": 12,
+        "reply_escalation_or_objection_failure": 12,
+        "unsupported_pricing_or_scope_claim": 12,
+        "wrong_crm_hubspot_calendar_next_action": 12
+      },
+      "task_type": {
+        "calendar_decision_judgment": 14,
+        "crm_decision_judgment": 13,
+        "enrichment_judgment": 7,
+        "outreach_judgment": 14,
+        "reply_judgment": 12
+      },
+      "source_mode": {
+        "hand_authored_adversarial": 18,
+        "programmatic": 26,
+        "trace_derived": 16
+      },
+      "difficulty": {
+        "T1_easy": 23,
+        "T2_medium": 21,
+        "T3_hard": 16
+      },
+      "expected_verdict": {
+        "fail": 25,
+        "needs_human_review": 10,
+        "pass": 25
+      }
+    },
+    "held_out": {
+      "count": 40,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 8,
+        "overclaimed_signal_or_maturity_claim": 8,
+        "reply_escalation_or_objection_failure": 8,
+        "unsupported_pricing_or_scope_claim": 8,
+        "wrong_crm_hubspot_calendar_next_action": 8
+      },
+      "task_type": {
+        "calendar_decision_judgment": 10,
+        "crm_decision_judgment": 10,
+        "enrichment_judgment": 8,
+        "outreach_judgment": 9,
+        "reply_judgment": 3
+      },
+      "source_mode": {
+        "hand_authored_adversarial": 9,
+        "programmatic": 24,
+        "trace_derived": 7
+      },
+      "difficulty": {
+        "T1_easy": 19,
+        "T2_medium": 10,
+        "T3_hard": 11
+      },
+      "expected_verdict": {
+        "fail": 17,
+        "needs_human_review": 7,
+        "pass": 16
+      }
+    }
+  },
+  "examples": {
+    "trace_derived": {
+      "task_id": "tb_seed_0062",
+      "split": "train",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "outreach_judgment",
+      "company_name": "ApertureSignal"
+    },
+    "programmatic": {
+      "task_id": "tb_seed_0026",
+      "split": "train",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "reply_judgment",
+      "company_name": "CobaltLearn"
+    },
+    "hand_authored_adversarial": {
+      "task_id": "tb_seed_0001",
+      "split": "train",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "reply_judgment",
+      "company_name": "VerityLedger"
+    }
+  },
+  "inter_rater_subset": [
+    {
+      "task_id": "tb_seed_0086",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "enrichment_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0068",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "reply_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0003",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0064",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "outreach_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0067",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "reply_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0077",
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "calendar_decision_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0009",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0090",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "outreach_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0093",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "reply_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0111",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "enrichment_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0098",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0100",
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0125",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "reply_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0123",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0141",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "enrichment_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0127",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "reply_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0117",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0119",
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0164",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "calendar_decision_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0156",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0165",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "calendar_decision_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0043",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0145",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "outreach_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0157",
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0183",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "crm_decision_judgment",
+      "source_mode": "trace_derived"
+    },
+    {
+      "task_id": "tb_seed_0199",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "enrichment_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0184",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "calendar_decision_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0055",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "reply_judgment",
+      "source_mode": "programmatic"
+    },
+    {
+      "task_id": "tb_seed_0052",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "reply_judgment",
+      "source_mode": "hand_authored_adversarial"
+    },
+    {
+      "task_id": "tb_seed_0059",
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "reply_judgment",
+      "source_mode": "programmatic"
+    }
+  ]
+}
