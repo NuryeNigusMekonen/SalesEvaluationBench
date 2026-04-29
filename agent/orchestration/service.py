@@ -1,6 +1,8 @@
+import json
 import logging
 import time
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar
 
@@ -496,6 +498,22 @@ class Orchestrator:
             needs_human=raw_decision.needs_human or bool(additional_risk_flags),
             risk_flags=raw_decision.risk_flags + additional_risk_flags,
             trace_tags=["inbound_reply", "policy_guarded", "central_handoff_manager"],
+        )
+
+        reply_decision_path = settings.outbox_dir / f"{snapshot.prospect.prospect_id}_reply_decision.json"
+        settings.outbox_dir.mkdir(parents=True, exist_ok=True)
+        reply_decision_path.write_text(
+            json.dumps(
+                {
+                    "prospect_id": snapshot.prospect.prospect_id,
+                    "channel": message.channel,
+                    "inbound_body_preview": message.body[:200],
+                    "decision": decision.model_dump(mode="json"),
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
         )
 
         self.trace_logger.log(

@@ -165,6 +165,40 @@ def test_booking_confirmation_prepares_voice_handoff() -> None:
     assert "confirmed" in brief_path.read_text().lower()
 
 
+def test_handle_inbound_message_writes_reply_decision_artifact() -> None:
+    snapshot = orchestrator.run_toolchain(
+        LeadIntakeRequest(
+            company_name="ClearMint",
+            company_domain="clearmint.io",
+            contact_name="Amara",
+            contact_email="amara.reply.artifact@clearmint.io",
+        )
+    )
+    orchestrator.handle_inbound_message(
+        InboundMessageRequest(
+            prospect_id=snapshot.prospect.prospect_id,
+            contact_email="amara.reply.artifact@clearmint.io",
+            channel="email",
+            body="Sounds interesting, can we set up a call?",
+        )
+    )
+
+    artifact_path = settings.outbox_dir / f"{snapshot.prospect.prospect_id}_reply_decision.json"
+    assert artifact_path.exists(), f"Expected reply decision artifact at {artifact_path}"
+
+    data = json.loads(artifact_path.read_text())
+    assert data["prospect_id"] == snapshot.prospect.prospect_id
+    assert data["channel"] == "email"
+    assert "inbound_body_preview" in data
+    assert "Sounds interesting" in data["inbound_body_preview"]
+    assert "decision" in data
+    assert data["decision"]["next_action"] in {"send_email", "book_meeting", "handoff_human"}
+    assert "reply_draft" in data["decision"]
+    assert "risk_flags" in data["decision"]
+    assert "needs_human" in data["decision"]
+    assert "recorded_at" in data
+
+
 def test_provider_webhook_parsers_build_inbound_messages() -> None:
     resend_inbound = email_channel.handle_resend_reply_webhook(
         {
