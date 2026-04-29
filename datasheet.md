@@ -2,6 +2,8 @@
 
 ## Telescopic view
 
+This datasheet follows the Gebru et al. datasheets framing and Pushkarna et al. data-card lifecycle framing: it documents purpose, composition, provenance, transformation, intended use, risks, and maintenance rather than only listing fields.
+
 Tenacious-Bench v0.1 is a Tenacious-specific evaluation dataset for judging Week 10 sales-agent behavior. It is not a general sales benchmark and it is not a generic LLM helpfulness set. Its purpose is to measure whether a judge or critic can correctly identify five high-cost failure surfaces in the Tenacious workflow:
 
 - unsupported pricing or scope claims
@@ -11,6 +13,13 @@ Tenacious-Bench v0.1 is a Tenacious-specific evaluation dataset for judging Week
 - reply escalation or objection-handling failures
 
 The interim release contains `200` tasks split into `100 train`, `60 dev`, and `40 held_out`.
+
+Dataset license: `Limited License — TRP1 Week 10 Seed Materials`, inherited from
+`docs/tenacious_sales_data/LICENSE.md`. This fits the interim Tenacious-Bench package
+because the benchmark is local, Tenacious-specific, and derived from challenge-provided
+Tenacious materials that should not be redistributed as a generic public sales corpus.
+Before any public Hugging Face release, the dataset needs Tenacious approval or a
+sanitized public license because the current license is intentionally challenge-limited.
 
 ## 1. Motivation
 
@@ -38,6 +47,16 @@ Week 10 established that the Tenacious agent can enrich prospects, route outreac
   - `90 fail`
   - `70 pass`
   - `40 needs_human_review`
+
+### Task counts by failure dimension
+
+| Failure dimension | Train | Dev | Held out | Total |
+|---|---:|---:|---:|---:|
+| `unsupported_pricing_or_scope_claim` | 20 | 12 | 8 | 40 |
+| `overclaimed_signal_or_maturity_claim` | 20 | 12 | 8 | 40 |
+| `generic_outreach_ungrounded` | 20 | 12 | 8 | 40 |
+| `wrong_crm_hubspot_calendar_next_action` | 20 | 12 | 8 | 40 |
+| `reply_escalation_or_objection_failure` | 20 | 12 | 8 | 40 |
 
 ### What one row contains
 
@@ -84,6 +103,13 @@ The Wednesday package uses three live authoring modes and reserves the fourth fo
 
 `multi_llm_synthesis` is intentionally documented in the schema but not yet populated in this interim build because no external authoring calls were made during materialization.
 
+Concrete authoring examples:
+
+- Trace-derived: `tb_seed_0071` turns a Week 10-style CRM decision trace for `ApertureBridge` into a judge task about whether the next action obeys pricing and workflow constraints.
+- Programmatic: `tb_seed_0003` uses the seed pricing and bench rules to create a `HelioCart` outreach judgment where the candidate critic must reject an unsupported scope/capacity claim.
+- Hand-authored adversarial: `tb_seed_0073` is a deliberately tricky CRM-action case for `ApertureWorks`, written from failure-analysis patterns so a fluent but unsafe decision looks superficially plausible.
+- Multi-LLM synthesis: no row is included yet; the planned mode is to have one model family author a new adversarial task, a separate model family judge it, and the local filter accept it only if it passes the executable thresholds in `generation_scripts/materialize_tenacious_bench.py`.
+
 ### Layered detail
 
 Periscopic:
@@ -100,6 +126,10 @@ That script:
 
 - reads `training/data/tenacious_bench_seed_200_v2.jsonl`
 - maps `source_type` to benchmark-facing `source_mode`
+- uses random seed `20260429` for reproducible judge-family routing
+- assigns a judge family through model-family rotation so a generator family cannot judge its own rows
+- applies executable judge-dimension thresholds of `4/5` for coherence, grounding, and rubric clarity
+- removes exact duplicate chosen/rejected preference pairs before splitting
 - assigns deterministic split labels
 - derives a simple difficulty tier
 - writes normalized benchmark rows into `tenacious_bench_v0.1/train`, `dev`, and `held_out`

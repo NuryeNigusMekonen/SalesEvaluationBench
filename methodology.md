@@ -17,6 +17,13 @@ Why: the strongest Week 10 pattern is inconsistency under known policy boundarie
 
 The interim dataset is materialized from the checked-in `training/data/tenacious_bench_seed_200_v2.jsonl` seed set, which already extends the earlier 20-row and 60-row authoring passes. This keeps the interim build grounded in local Week 10 evidence and Tenacious seed materials rather than depending on fresh external model calls.
 
+Required-reading rationale:
+
+- Rafailov et al.'s Direct Preference Optimization paper supports the `chosen` / `rejected` pair structure: the benchmark teaches a critic to prefer the rationale that catches the Tenacious-specific failure instead of merely imitating fluent sales prose.
+- Meng, Xia, and Chen's SimPO paper motivates concise, calibrated judge responses and length-aware preference pairs, which matters because a verbose critique should not beat a short correct one by style alone.
+- Li et al.'s Preference Leakage paper is the reason the generation notes and materializer enforce model-family separation: a model family that authors a task should not also judge that same task family.
+- Pushkarna et al.'s Data Cards paper and the Gebru et al. datasheets framing drive the layered documentation in `datasheet.md`, especially provenance, intended uses, limits, and maintenance.
+
 Source-mode mapping for the interim release:
 
 - `trace` -> `trace_derived`
@@ -39,7 +46,7 @@ The benchmark is materialized into scenario-safe interim splits:
 - `dev`: `60`
 - `held_out`: `40`
 
-The current splitter is deterministic and stratified by risk focus so each split preserves all five failure families. Scenario IDs are unique across splits. One repeated synthetic company name, `OrbitStack Cloud`, still appears across `train` and `dev`; that is documented in the contamination report and is scheduled for cleanup before public release.
+The current splitter is deterministic and stratified by risk focus so each split preserves all five failure families. The judge-routing filter uses the pinned seed `20260429`. Scenario IDs are unique across splits. One repeated synthetic company-name overlap remains after materialization: `OrbitStack Cloud` across `dev` / `train`. It is documented in the contamination report and scheduled for co-location or renaming before public release.
 
 ## Judge and filtering policy
 
@@ -56,14 +63,24 @@ The deterministic evaluator at `scoring_evaluator.py` scores a candidate judge r
 - overlap with the grounded expected reason
 - matching source citations
 
+The generation filter in `generation_scripts/materialize_tenacious_bench.py` also executes the scaffold that had previously lived only in prose: model-family rotation blocks self-judging, judge-dimension thresholds are set to `>=4/5` for coherence, grounding, and rubric clarity, and exact duplicate chosen/rejected preference-pair signatures are removed before split assignment. In the current local batch, `200` rows passed, `0` rows failed thresholds, and `0` exact preference-pair duplicates were removed.
+
 ## Contamination-check summary
 
 Results are written to `contamination_check.json`.
 
-- exact `scenario_id` overlap across splits: `0`
-- exact repeated company overlap across splits: `OrbitStack Cloud` only
-- embedding model: not available locally, so the interim pass uses token-cosine fallback
-- high token overlap remains in parts of the synthetic expansion because many tasks share scaffolded prompt surfaces; this is explicitly treated as an interim limitation, not a solved problem
+Results by check type:
+
+| Check type | Flagged result | Resolution |
+|---|---:|---|
+| Exact `scenario_id` overlap | `0` across all split pairs | No action needed. |
+| Exact `company_name` overlap | `1` split-pair overlap: `OrbitStack Cloud` | Retained for the interim with explicit disclosure; co-locate or rename before public release. |
+| Exact preference-pair duplicate | `0` removed by the materializer | No duplicate pair removal needed in this batch. |
+| Shared normalized 8-gram overlap | `2881` train/dev pairs, `2034` train/held-out pairs, `1193` dev/held-out pairs | Treated as template-scaffold leakage risk; retained only as interim data and called out as a limitation. |
+| Embedding-style similarity | `0` token-cosine fallback pairs at the `>=0.85` threshold | No removal from this check; a real pinned embedding model should replace the fallback before public release. |
+| Time-shift check | Manual snapshot review only | No fresh public-signal retrieval was used; static funding, hiring, and layoff facts remain a freshness limitation. |
+
+The high n-gram counts come from repeated benchmark scaffolding and seed-rule phrasing, not exact scenario duplication. They are not treated as solved; they are the main reason this package is still labeled `0.1.0-interim`.
 
 ## Cost discipline
 
