@@ -33,6 +33,8 @@
   "pairwise_checks": {
     "train_vs_dev": {
       "pair_count_flagged": 2881,
+      "ngram_pair_count_flagged": 2881,
+      "embedding_fallback_pair_count_flagged": 0,
       "max_shared_8gram_count": 20,
       "max_token_cosine_similarity": 0.8017,
       "closest_pair": {
@@ -102,10 +104,75 @@
           "shared_8gram_count": 7,
           "token_cosine_similarity": 0.5991
         }
-      ]
+      ],
+      "ngram_flagged_pairs_sample": [
+        {
+          "left_task_id": "tb_seed_0015",
+          "right_task_id": "tb_seed_0164",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.5045
+        },
+        {
+          "left_task_id": "tb_seed_0021",
+          "right_task_id": "tb_seed_0100",
+          "shared_8gram_count": 2,
+          "token_cosine_similarity": 0.434
+        },
+        {
+          "left_task_id": "tb_seed_0028",
+          "right_task_id": "tb_seed_0184",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.4764
+        },
+        {
+          "left_task_id": "tb_seed_0029",
+          "right_task_id": "tb_seed_0040",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.517
+        },
+        {
+          "left_task_id": "tb_seed_0041",
+          "right_task_id": "tb_seed_0011",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.7388
+        },
+        {
+          "left_task_id": "tb_seed_0042",
+          "right_task_id": "tb_seed_0050",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.6444
+        },
+        {
+          "left_task_id": "tb_seed_0049",
+          "right_task_id": "tb_seed_0050",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.7289
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0064",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5991
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0067",
+          "shared_8gram_count": 8,
+          "token_cosine_similarity": 0.654
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0068",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5991
+        }
+      ],
+      "embedding_fallback_flagged_pairs_sample": []
     },
     "train_vs_held_out": {
       "pair_count_flagged": 2034,
+      "ngram_pair_count_flagged": 2034,
+      "embedding_fallback_pair_count_flagged": 0,
       "max_shared_8gram_count": 20,
       "max_token_cosine_similarity": 0.7814,
       "closest_pair": {
@@ -175,10 +242,75 @@
           "shared_8gram_count": 7,
           "token_cosine_similarity": 0.5821
         }
-      ]
+      ],
+      "ngram_flagged_pairs_sample": [
+        {
+          "left_task_id": "tb_seed_0015",
+          "right_task_id": "tb_seed_0072",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.4989
+        },
+        {
+          "left_task_id": "tb_seed_0029",
+          "right_task_id": "tb_seed_0007",
+          "shared_8gram_count": 2,
+          "token_cosine_similarity": 0.6058
+        },
+        {
+          "left_task_id": "tb_seed_0042",
+          "right_task_id": "tb_seed_0080",
+          "shared_8gram_count": 2,
+          "token_cosine_similarity": 0.4602
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0063",
+          "shared_8gram_count": 8,
+          "token_cosine_similarity": 0.614
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0069",
+          "shared_8gram_count": 16,
+          "token_cosine_similarity": 0.7218
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0072",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5647
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0075",
+          "shared_8gram_count": 8,
+          "token_cosine_similarity": 0.6085
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0080",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5901
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0083",
+          "shared_8gram_count": 8,
+          "token_cosine_similarity": 0.6251
+        },
+        {
+          "left_task_id": "tb_seed_0061",
+          "right_task_id": "tb_seed_0084",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5821
+        }
+      ],
+      "embedding_fallback_flagged_pairs_sample": []
     },
     "dev_vs_held_out": {
       "pair_count_flagged": 1193,
+      "ngram_pair_count_flagged": 1193,
+      "embedding_fallback_pair_count_flagged": 0,
       "max_shared_8gram_count": 20,
       "max_token_cosine_similarity": 0.7881,
       "closest_pair": {
@@ -248,7 +380,70 @@
           "shared_8gram_count": 7,
           "token_cosine_similarity": 0.6016
         }
-      ]
+      ],
+      "ngram_flagged_pairs_sample": [
+        {
+          "left_task_id": "tb_seed_0009",
+          "right_task_id": "tb_seed_0096",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.4639
+        },
+        {
+          "left_task_id": "tb_seed_0040",
+          "right_task_id": "tb_seed_0007",
+          "shared_8gram_count": 6,
+          "token_cosine_similarity": 0.5001
+        },
+        {
+          "left_task_id": "tb_seed_0050",
+          "right_task_id": "tb_seed_0008",
+          "shared_8gram_count": 2,
+          "token_cosine_similarity": 0.449
+        },
+        {
+          "left_task_id": "tb_seed_0055",
+          "right_task_id": "tb_seed_0096",
+          "shared_8gram_count": 1,
+          "token_cosine_similarity": 0.4769
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0063",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.582
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0069",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5629
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0072",
+          "shared_8gram_count": 18,
+          "token_cosine_similarity": 0.7328
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0075",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.5942
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0080",
+          "shared_8gram_count": 18,
+          "token_cosine_similarity": 0.7712
+        },
+        {
+          "left_task_id": "tb_seed_0064",
+          "right_task_id": "tb_seed_0083",
+          "shared_8gram_count": 7,
+          "token_cosine_similarity": 0.6016
+        }
+      ],
+      "embedding_fallback_flagged_pairs_sample": []
     }
   },
   "time_shift_notes": {

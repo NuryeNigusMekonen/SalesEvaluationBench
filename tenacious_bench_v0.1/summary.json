@@ -8,6 +8,60 @@
     "dev": 0.3,
     "held_out": 0.2
   },
+  "random_seed": 20260429,
+  "judge_filter": {
+    "random_seed": 20260429,
+    "judge_dimension_thresholds": {
+      "coherence": 4,
+      "grounding": 4,
+      "rubric_clarity": 4
+    },
+    "author_to_judge_rotation": {
+      "openai": [
+        "anthropic",
+        "openrouter",
+        "local_rule"
+      ],
+      "anthropic": [
+        "openai",
+        "openrouter",
+        "local_rule"
+      ],
+      "openrouter": [
+        "openai",
+        "anthropic",
+        "local_rule"
+      ],
+      "local_rule": [
+        "openai",
+        "anthropic"
+      ],
+      "human": [
+        "local_rule",
+        "openai",
+        "anthropic"
+      ],
+      "unknown": [
+        "local_rule",
+        "openai",
+        "anthropic"
+      ]
+    },
+    "included_count": 200,
+    "rejected_count": 0,
+    "rejected_rows_sample": [],
+    "exact_preference_pair_duplicates_removed": 0,
+    "duplicate_pair_sample": [],
+    "judge_assignments": {
+      "anthropic": 94,
+      "local_rule": 7,
+      "openai": 99
+    },
+    "author_families": {
+      "human": 40,
+      "local_rule": 160
+    }
+  },
   "splits": {
     "train": {
       "count": 100,

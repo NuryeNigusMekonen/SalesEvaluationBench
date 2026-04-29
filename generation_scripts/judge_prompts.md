@@ -4,6 +4,8 @@
 
 The repo already contains a fully local, manually reviewed seed dataset in `training/data/tenacious_bench_seed_200_v2.jsonl`. For the Wednesday interim, the benchmark is materialized from that local artifact instead of calling external models.
 
+The executable routing and filter logic lives in `generation_scripts/materialize_tenacious_bench.py` with random seed `20260429`. It assigns a judge model family by deterministic rotation, blocks self-judging by author family, scores coherence / grounding / rubric clarity against `>= 4/5` thresholds, and removes exact duplicate chosen/rejected preference-pair signatures before split assignment.
+
 ## Planned model roles for Days 4-7
 
 - Hard-case author:
@@ -52,6 +54,8 @@ Inclusion thresholds for the final version:
 - coherence: `>= 4/5`
 - grounding: `>= 4/5`
 - rubric clarity: `>= 4/5`
+
+The same thresholds are encoded in `JUDGE_DIMENSION_THRESHOLDS` so they are checked by code, not only documented here.
 
 ## Leakage guardrails
 

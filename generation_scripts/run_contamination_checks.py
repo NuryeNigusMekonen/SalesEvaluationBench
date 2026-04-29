@@ -77,6 +77,8 @@ def cosine_similarity(text_a: str, text_b: str) -> float:
 
 def scan_pairs(rows_a: list[dict], rows_b: list[dict]) -> dict:
     pairs = []
+    ngram_pairs = []
+    embedding_pairs = []
     max_ngram_overlap = 0
     max_cosine = 0.0
     closest = None
@@ -98,20 +100,27 @@ def scan_pairs(rows_a: list[dict], rows_b: list[dict]) -> dict:
             max_ngram_overlap = max(max_ngram_overlap, shared_ngrams)
             max_cosine = max(max_cosine, cosine)
             if shared_ngrams > 0 or cosine >= 0.85:
-                pairs.append(
-                    {
-                        "left_task_id": row_a["task_id"],
-                        "right_task_id": row_b["task_id"],
-                        "shared_8gram_count": shared_ngrams,
-                        "token_cosine_similarity": round(cosine, 4),
-                    }
-                )
+                pair = {
+                    "left_task_id": row_a["task_id"],
+                    "right_task_id": row_b["task_id"],
+                    "shared_8gram_count": shared_ngrams,
+                    "token_cosine_similarity": round(cosine, 4),
+                }
+                pairs.append(pair)
+                if shared_ngrams > 0:
+                    ngram_pairs.append(pair)
+                if cosine >= 0.85:
+                    embedding_pairs.append(pair)
     return {
         "pair_count_flagged": len(pairs),
+        "ngram_pair_count_flagged": len(ngram_pairs),
+        "embedding_fallback_pair_count_flagged": len(embedding_pairs),
         "max_shared_8gram_count": max_ngram_overlap,
         "max_token_cosine_similarity": round(max_cosine, 4),
         "closest_pair": closest,
         "flagged_pairs_sample": pairs[:10],
+        "ngram_flagged_pairs_sample": ngram_pairs[:10],
+        "embedding_fallback_flagged_pairs_sample": embedding_pairs[:10],
     }
 
 
