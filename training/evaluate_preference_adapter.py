@@ -64,6 +64,7 @@ def _load_model_and_tokenizer(adapter_path: str):
 
     if importlib.util.find_spec("unsloth") is not None:  # noqa: F821 — top-level import
         from unsloth import FastLanguageModel
+        from peft import PeftModel
 
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=BASE_MODEL,
@@ -71,9 +72,12 @@ def _load_model_and_tokenizer(adapter_path: str):
             dtype=None,
             load_in_4bit=True,
         )
-        model = FastLanguageModel.get_peft_model(model, adapter_path)
-        FastLanguageModel.for_inference(model)
-        print(f"Loaded via Unsloth (4-bit): {BASE_MODEL} + {adapter_path}")
+        # PeftModel.from_pretrained loads an existing adapter; do NOT call
+        # FastLanguageModel.get_peft_model here — that creates a new adapter
+        # and expects an integer rank, not a path.
+        model = PeftModel.from_pretrained(model, adapter_path)
+        model.eval()
+        print(f"Loaded via Unsloth (4-bit) + PEFT: {BASE_MODEL} + {adapter_path}")
     else:
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         from peft import PeftModel
