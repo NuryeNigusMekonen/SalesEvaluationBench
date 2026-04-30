@@ -22,3 +22,14 @@ docs/
 uv.lock
 /memo.pdf
 reports/
+
+# Local model artifacts
+outputs/tenacious-judge-v02-simpo-lora/
+outputs/tenacious-judge-simpo-lora/
+*.safetensors
+*.zip
+
+# Week 11 local model artifacts
+outputs/models/
+*.safetensors
+*.zip

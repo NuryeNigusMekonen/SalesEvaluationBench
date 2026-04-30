@@ -1,0 +1,324 @@
+{
+  "split": "v02_test_preferences",
+  "score_mode": "avg",
+  "total": 15,
+  "correct": 12,
+  "accuracy": 0.8,
+  "by_risk_focus": {
+    "overclaimed_signal_or_maturity_claim": {
+      "correct": 5,
+      "total": 5,
+      "accuracy": 1.0
+    },
+    "wrong_crm_hubspot_calendar_next_action": {
+      "correct": 2,
+      "total": 3,
+      "accuracy": 0.6667
+    },
+    "generic_outreach_ungrounded": {
+      "correct": 2,
+      "total": 2,
+      "accuracy": 1.0
+    },
+    "reply_escalation_or_objection_failure": {
+      "correct": 1,
+      "total": 2,
+      "accuracy": 0.5
+    },
+    "unsupported_pricing_or_scope_claim": {
+      "correct": 2,
+      "total": 3,
+      "accuracy": 0.6667
+    }
+  },
+  "by_task_type": {
+    "outreach_judgment": {
+      "correct": 3,
+      "total": 3,
+      "accuracy": 1.0
+    },
+    "tone_preservation_judgment": {
+      "correct": 2,
+      "total": 2,
+      "accuracy": 1.0
+    },
+    "reply_judgment": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.6667
+    },
+    "enrichment_judgment": {
+      "correct": 3,
+      "total": 3,
+      "accuracy": 1.0
+    },
+    "channel_policy_judgment": {
+      "correct": 0,
+      "total": 1,
+      "accuracy": 0.0
+    }
+  },
+  "by_expected_verdict": {
+    "needs_human_review": {
+      "correct": 5,
+      "total": 5,
+      "accuracy": 1.0
+    },
+    "fail": {
+      "correct": 5,
+      "total": 7,
+      "accuracy": 0.7143
+    },
+    "pass": {
+      "correct": 2,
+      "total": 3,
+      "accuracy": 0.6667
+    }
+  },
+  "rows": [
+    {
+      "task_id": "tb_v02_0026",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.418463,
+      "chosen_avg_logprob": -4.072917,
+      "rejected_avg_logprob": -5.491379,
+      "chosen_total_logprob": -244.375,
+      "rejected_total_logprob": -159.25,
+      "prompt_len": 799,
+      "chosen_completion_tokens": 60,
+      "rejected_completion_tokens": 29,
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "outreach_judgment",
+      "expected_verdict": "needs_human_review"
+    },
+    {
+      "task_id": "tb_v02_0027",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 0.978943,
+      "chosen_avg_logprob": -3.694444,
+      "rejected_avg_logprob": -4.673387,
+      "chosen_total_logprob": -232.75,
+      "rejected_total_logprob": -144.875,
+      "prompt_len": 808,
+      "chosen_completion_tokens": 63,
+      "rejected_completion_tokens": 31,
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "tone_preservation_judgment",
+      "expected_verdict": "needs_human_review"
+    },
+    {
+      "task_id": "tb_v02_0028",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.119786,
+      "chosen_avg_logprob": -3.799569,
+      "rejected_avg_logprob": -4.919355,
+      "chosen_total_logprob": -220.375,
+      "rejected_total_logprob": -152.5,
+      "prompt_len": 788,
+      "chosen_completion_tokens": 58,
+      "rejected_completion_tokens": 31,
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "reply_judgment",
+      "expected_verdict": "needs_human_review"
+    },
+    {
+      "task_id": "tb_v02_0029",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 0.568691,
+      "chosen_avg_logprob": -4.759434,
+      "rejected_avg_logprob": -5.328125,
+      "chosen_total_logprob": -252.25,
+      "rejected_total_logprob": -170.5,
+      "prompt_len": 801,
+      "chosen_completion_tokens": 53,
+      "rejected_completion_tokens": 32,
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "enrichment_judgment",
+      "expected_verdict": "needs_human_review"
+    },
+    {
+      "task_id": "tb_v02_0030",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.458357,
+      "chosen_avg_logprob": -3.864919,
+      "rejected_avg_logprob": -5.323276,
+      "chosen_total_logprob": -239.625,
+      "rejected_total_logprob": -154.375,
+      "prompt_len": 804,
+      "chosen_completion_tokens": 62,
+      "rejected_completion_tokens": 29,
+      "risk_focus": "overclaimed_signal_or_maturity_claim",
+      "task_type": "outreach_judgment",
+      "expected_verdict": "needs_human_review"
+    },
+    {
+      "task_id": "tb_v02_0034",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 0.20467,
+      "chosen_avg_logprob": -5.098361,
+      "rejected_avg_logprob": -5.30303,
+      "chosen_total_logprob": -311.0,
+      "rejected_total_logprob": -175.0,
+      "prompt_len": 770,
+      "chosen_completion_tokens": 61,
+      "rejected_completion_tokens": 33,
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "reply_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0038",
+      "correct": false,
+      "score_mode": "avg",
+      "margin": -0.319682,
+      "chosen_avg_logprob": -4.979839,
+      "rejected_avg_logprob": -4.660156,
+      "chosen_total_logprob": -308.75,
+      "rejected_total_logprob": -149.125,
+      "prompt_len": 769,
+      "chosen_completion_tokens": 62,
+      "rejected_completion_tokens": 32,
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "reply_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0042",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.539484,
+      "chosen_avg_logprob": -4.873016,
+      "rejected_avg_logprob": -6.4125,
+      "chosen_total_logprob": -307.0,
+      "rejected_total_logprob": -192.375,
+      "prompt_len": 775,
+      "chosen_completion_tokens": 63,
+      "rejected_completion_tokens": 30,
+      "risk_focus": "wrong_crm_hubspot_calendar_next_action",
+      "task_type": "reply_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0059",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.845202,
+      "chosen_avg_logprob": -3.647222,
+      "rejected_avg_logprob": -5.492424,
+      "chosen_total_logprob": -328.25,
+      "rejected_total_logprob": -181.25,
+      "prompt_len": 777,
+      "chosen_completion_tokens": 90,
+      "rejected_completion_tokens": 33,
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "enrichment_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0063",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.677036,
+      "chosen_avg_logprob": -3.653846,
+      "rejected_avg_logprob": -5.330882,
+      "chosen_total_logprob": -332.5,
+      "rejected_total_logprob": -181.25,
+      "prompt_len": 780,
+      "chosen_completion_tokens": 91,
+      "rejected_completion_tokens": 34,
+      "risk_focus": "generic_outreach_ungrounded",
+      "task_type": "enrichment_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0081",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 1.516968,
+      "chosen_avg_logprob": -4.242647,
+      "rejected_avg_logprob": -5.759615,
+      "chosen_total_logprob": -216.375,
+      "rejected_total_logprob": -149.75,
+      "prompt_len": 769,
+      "chosen_completion_tokens": 51,
+      "rejected_completion_tokens": 26,
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "reply_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0082",
+      "correct": false,
+      "score_mode": "avg",
+      "margin": -0.210663,
+      "chosen_avg_logprob": -4.238889,
+      "rejected_avg_logprob": -4.028226,
+      "chosen_total_logprob": -190.75,
+      "rejected_total_logprob": -124.875,
+      "prompt_len": 776,
+      "chosen_completion_tokens": 45,
+      "rejected_completion_tokens": 31,
+      "risk_focus": "reply_escalation_or_objection_failure",
+      "task_type": "channel_policy_judgment",
+      "expected_verdict": "fail"
+    },
+    {
+      "task_id": "tb_v02_0093",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 0.3475,
+      "chosen_avg_logprob": -4.84,
+      "rejected_avg_logprob": -5.1875,
+      "chosen_total_logprob": -242.0,
+      "rejected_total_logprob": -176.375,
+      "prompt_len": 774,
+      "chosen_completion_tokens": 50,
+      "rejected_completion_tokens": 34,
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "tone_preservation_judgment",
+      "expected_verdict": "pass"
+    },
+    {
+      "task_id": "tb_v02_0094",
+      "correct": false,
+      "score_mode": "avg",
+      "margin": -1.028293,
+      "chosen_avg_logprob": -5.076087,
+      "rejected_avg_logprob": -4.047794,
+      "chosen_total_logprob": -233.5,
+      "rejected_total_logprob": -137.625,
+      "prompt_len": 770,
+      "chosen_completion_tokens": 46,
+      "rejected_completion_tokens": 34,
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "reply_judgment",
+      "expected_verdict": "pass"
+    },
+    {
+      "task_id": "tb_v02_0095",
+      "correct": true,
+      "score_mode": "avg",
+      "margin": 0.181373,
+      "chosen_avg_logprob": -4.610294,
+      "rejected_avg_logprob": -4.791667,
+      "chosen_total_logprob": -235.125,
+      "rejected_total_logprob": -143.75,
+      "prompt_len": 776,
+      "chosen_completion_tokens": 51,
+      "rejected_completion_tokens": 30,
+      "risk_focus": "unsupported_pricing_or_scope_claim",
+      "task_type": "outreach_judgment",
+      "expected_verdict": "pass"
+    }
+  ],
+  "adapter_path": "outputs/tenacious-judge-v02-simpo-lora",
+  "split_file": "training/data/v02_test_preferences.jsonl",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "chat_template_applied": true
+}
