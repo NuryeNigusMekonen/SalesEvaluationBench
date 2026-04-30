@@ -155,6 +155,15 @@ See [training/COLAB_TRAINING_GUIDE.md](training/COLAB_TRAINING_GUIDE.md) for the
 3. Run held-out evaluation (`training/data/test_preferences.jsonl`) once, at the end.
 4. Target: average scoring_evaluator score ≥ 70 / 100 on held-out split.
 
+### Cost Discipline
+
+- Compute envelope: **$10 per trainee** (challenge limit).
+- Total spend to date: **$0.021750** (two Week 10 τ²-Bench runs; all Week 11 work was $0).
+- Training: Google Colab T4 free runtime + Unsloth + QLoRA + SimPO → **$0**.
+- τ²-Bench retail rerun: **not run**. Week 10 result reused per challenge rules ("Re-running it costs roughly $5–8 per pass").
+- All v0.1 and v0.2 dataset authoring used local rule-based scripts; no paid model API calls.
+- Full cost log with per-entry evidence: [cost_log.md](cost_log.md).
+
 ### ⚠️ Deprecated seed warning
 
 **Never** use `training/data/tenacious_bench_seed_200.jsonl` in any training, evaluation,
