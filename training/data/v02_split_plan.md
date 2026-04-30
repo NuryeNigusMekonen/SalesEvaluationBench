@@ -1,15 +1,64 @@
 # Tenacious-Bench v0.2 Split Plan
 
-`training/data/tenacious_bench_v0_2_expansion_100.jsonl` is a seed-only expansion. It must be manually reviewed before any training split is created.
+`training/data/tenacious_bench_v0_2_expansion_100.jsonl` has been split after the first-pass self-review in `reports/manual_review_v02_expansion_100.md`.
 
-After review, create fresh v0.2 train/dev/new-held-out splits from the v0.2 scenario families. Do not tune on the old v0.1 held-out set; keep it sealed for historical reporting only. Do not place near-duplicate variants, same scenario families, same company patterns, or same tone/channel failure templates across different splits.
+## Source Filter
 
-The new held-out split should come from v0.2 scenario families that are not represented by near-duplicates in train or dev. Prioritize the weak v0.1 areas: overclaimed signal/maturity claims, CRM/calendar/channel decisions, generic outreach/tone preservation, LinkedIn-roast risk, and unsupported pricing/capacity claims.
+- included rows: `100`
+- filter: `reviewer_verdict=approve`
+- excluded rows: `0`
+- v0.1 held-out rows used: `0`
 
-Recommended post-review flow:
+## Split Counts
 
-1. Resolve all manual review comments and remove ambiguous labels.
-2. Group rows by `scenario_id`, `risk_focus`, `tone_failure_modes`, and source pattern.
-3. Assign whole groups to train/dev/new-held-out.
-4. Validate no old v0.1 held-out rows or near-duplicates were used for tuning.
-5. Convert only approved v0.2 split rows into preference pairs for the next judge-adapter run.
+- train: `70`
+- dev: `15`
+- held_out: `15`
+
+## Split Rules Applied
+
+Rows were grouped by `scenario_id` and explicit `metadata.semantic_family` labels before assignment. Near-duplicate templates were kept in one split, including:
+
+- overclaimed funding/capacity assertions
+- ambiguous overclaimed-signal review cases
+- CRM auto-booking and channel-escalation cases
+- generic follow-up and resource-note patterns
+- reply escalation and legal/compliance handoff patterns
+- pricing discount, capacity, and custom-scope boundaries
+
+## Distribution
+
+### Risk Focus
+
+| split | generic_outreach_ungrounded | overclaimed_signal_or_maturity_claim | reply_escalation_or_objection_failure | unsupported_pricing_or_scope_claim | wrong_crm_hubspot_calendar_next_action |
+|---|---:|---:|---:|---:|---:|
+| train | 20 | 20 | 6 | 6 | 18 |
+| dev | 3 | 5 | 2 | 1 | 4 |
+| held_out | 2 | 5 | 2 | 3 | 3 |
+
+### Expected Verdict
+
+| split | fail | needs_human_review | pass |
+|---|---:|---:|---:|
+| train | 32 | 12 | 26 |
+| dev | 6 | 3 | 6 |
+| held_out | 7 | 5 | 3 |
+
+## Generated Files
+
+- `tenacious_bench_v0.2/train/tasks.jsonl`
+- `tenacious_bench_v0.2/dev/tasks.jsonl`
+- `tenacious_bench_v0.2/held_out/tasks.jsonl`
+- `tenacious_bench_v0.2/README.md`
+- `tenacious_bench_v0.2/summary.json`
+- `training/data/v02_train_preferences.jsonl`
+- `training/data/v02_dev_preferences.jsonl`
+- `training/data/v02_test_preferences.jsonl`
+
+## Validation Commands
+
+```bash
+python training/validate_v02_split.py
+python training/convert_v02_tasks_to_preferences.py
+python training/validate_v02_preferences.py
+```

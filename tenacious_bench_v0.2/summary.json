@@ -1,0 +1,158 @@
+{
+  "dataset_name": "Tenacious-Bench v0.2",
+  "dataset_version": "0.2.0",
+  "source_seed_file": "training/data/tenacious_bench_v0_2_expansion_100.jsonl",
+  "manual_review_file": "reports/manual_review_v02_expansion_100.md",
+  "split_plan_file": "training/data/v02_split_plan.md",
+  "total_tasks": 100,
+  "target_split_ratio": {
+    "train": 0.7,
+    "dev": 0.15,
+    "held_out": 0.15
+  },
+  "approved_filter": {
+    "reviewer_verdict": "approve",
+    "included_count": 100,
+    "excluded_count": 0
+  },
+  "split_method": "Whole scenario_id and semantic-family assignment from approved v0.2 seed; no v0.1 held_out rows used.",
+  "splits": {
+    "train": {
+      "count": 70,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 20,
+        "overclaimed_signal_or_maturity_claim": 20,
+        "reply_escalation_or_objection_failure": 6,
+        "unsupported_pricing_or_scope_claim": 6,
+        "wrong_crm_hubspot_calendar_next_action": 18
+      },
+      "expected_verdict": {
+        "fail": 32,
+        "needs_human_review": 12,
+        "pass": 26
+      },
+      "task_type": {
+        "calendar_decision_judgment": 6,
+        "channel_policy_judgment": 11,
+        "crm_decision_judgment": 8,
+        "enrichment_judgment": 8,
+        "outreach_judgment": 12,
+        "reply_judgment": 12,
+        "tone_preservation_judgment": 13
+      },
+      "source_type": {
+        "manual_rule_grounded_v2": 23,
+        "programmatic_v2": 15,
+        "style_guide_v2_pattern": 16,
+        "trace_adapted": 16
+      },
+      "semantic_family_count": 28,
+      "semantic_families": [
+        "crm_fail_bounce_linkedin_attachment",
+        "crm_fail_reengagement_multichannel",
+        "crm_fail_sms_warm_stage_escalation",
+        "crm_nhr_channel_consent_review",
+        "crm_nhr_legal_or_stage_review",
+        "crm_pass_calendar_confirmation",
+        "crm_pass_channel_no_fallback",
+        "generic_fail_cold_attachment_deck",
+        "generic_fail_linkedin_roast",
+        "generic_fail_world_class_generic",
+        "generic_nhr_review_needed",
+        "generic_pass_data_resource",
+        "generic_pass_go_frontend_resource",
+        "generic_pass_ml_resource",
+        "over_fail_ai_maturity_shaming",
+        "over_fail_quick_chat_asserted_hiring",
+        "over_pass_question_data_signal",
+        "over_pass_question_frontend_signal",
+        "over_pass_question_go_signal",
+        "over_pass_question_infra_signal",
+        "over_pass_question_ml_signal",
+        "over_pass_question_python_signal",
+        "pricing_fail_unsupported_capacity",
+        "pricing_nhr_custom_scope_discount",
+        "pricing_pass_multiphase_scope",
+        "pricing_pass_unsupported_capacity_boundary",
+        "reply_fail_hard_no_push",
+        "reply_pass_human_handoff"
+      ]
+    },
+    "dev": {
+      "count": 15,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 3,
+        "overclaimed_signal_or_maturity_claim": 5,
+        "reply_escalation_or_objection_failure": 2,
+        "unsupported_pricing_or_scope_claim": 1,
+        "wrong_crm_hubspot_calendar_next_action": 4
+      },
+      "expected_verdict": {
+        "fail": 6,
+        "needs_human_review": 3,
+        "pass": 6
+      },
+      "task_type": {
+        "channel_policy_judgment": 3,
+        "crm_decision_judgment": 2,
+        "enrichment_judgment": 3,
+        "outreach_judgment": 2,
+        "reply_judgment": 3,
+        "tone_preservation_judgment": 2
+      },
+      "source_type": {
+        "manual_rule_grounded_v2": 1,
+        "programmatic_v2": 6,
+        "style_guide_v2_pattern": 6,
+        "trace_adapted": 2
+      },
+      "semantic_family_count": 6,
+      "semantic_families": [
+        "crm_nhr_calendar_ambiguity_review",
+        "crm_pass_conservative_status_sms",
+        "generic_pass_signal_check_resource",
+        "over_fail_invented_funding_capacity",
+        "pricing_fail_urgent_discount",
+        "reply_nhr_ambiguous_escalation"
+      ]
+    },
+    "held_out": {
+      "count": 15,
+      "risk_focus": {
+        "generic_outreach_ungrounded": 2,
+        "overclaimed_signal_or_maturity_claim": 5,
+        "reply_escalation_or_objection_failure": 2,
+        "unsupported_pricing_or_scope_claim": 3,
+        "wrong_crm_hubspot_calendar_next_action": 3
+      },
+      "expected_verdict": {
+        "fail": 7,
+        "needs_human_review": 5,
+        "pass": 3
+      },
+      "task_type": {
+        "channel_policy_judgment": 1,
+        "enrichment_judgment": 3,
+        "outreach_judgment": 3,
+        "reply_judgment": 6,
+        "tone_preservation_judgment": 2
+      },
+      "source_type": {
+        "manual_rule_grounded_v2": 1,
+        "programmatic_v2": 4,
+        "style_guide_v2_pattern": 3,
+        "trace_adapted": 7
+      },
+      "semantic_family_count": 7,
+      "semantic_families": [
+        "crm_fail_autobook_before_confirmation",
+        "generic_fail_per_my_last",
+        "over_nhr_ambiguous_signal_channel",
+        "pricing_pass_custom_total_routing",
+        "pricing_pass_minimum_no_total",
+        "pricing_pass_public_bands",
+        "reply_fail_unsafe_compliance_legal_answer"
+      ]
+    }
+  }
+}
