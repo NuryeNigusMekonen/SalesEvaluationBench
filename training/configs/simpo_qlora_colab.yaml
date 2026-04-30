@@ -1,0 +1,102 @@
+# Tenacious Judge Adapter — SimPO / QLoRA training config
+# Target runtime: Google Colab T4 (free tier)
+#
+# ALL VALUES BELOW ARE STARTING POINTS.
+# Adjust batch_size, gradient_accumulation_steps, learning_rate, and epochs
+# based on your first Colab dry run. Watch the GPU RAM meter — if it OOMs,
+# reduce max_seq_length first, then batch_size.
+#
+# Do NOT train from training/data/tenacious_bench_seed_200.jsonl (deprecated).
+# Use only the files listed under train_file / dev_file / test_file below.
+
+# ── Base model ──────────────────────────────────────────────────────────────
+base_model: Qwen/Qwen2.5-3B-Instruct
+# 3B is the largest model that fits comfortably in a T4 (16 GB) with 4-bit quant.
+# If you have access to an A100, switch to Qwen2.5-7B-Instruct.
+
+# ── Training method ─────────────────────────────────────────────────────────
+training_method: SimPO
+# SimPO (Simple Preference Optimization) trains directly on (prompt, chosen, rejected)
+# triples without a reference model, which is memory-efficient on Colab.
+
+# ── Adapter ─────────────────────────────────────────────────────────────────
+adapter: QLoRA
+# QLoRA applies LoRA adapters on top of a 4-bit quantized base model.
+
+# ── Quantization ────────────────────────────────────────────────────────────
+load_in_4bit: true
+# Required for T4. Loaded via bitsandbytes NF4.
+
+# ── Sequence length ──────────────────────────────────────────────────────────
+max_seq_length: 2048
+# The judge prompts are verbose. 2048 fits most rows without truncation.
+# If you see many truncation warnings, raise to 3072 and verify T4 RAM usage.
+
+# ── LoRA hyperparameters ────────────────────────────────────────────────────
+lora_r: 16           # LoRA rank — increase to 32 for more capacity (more VRAM)
+lora_alpha: 32       # Scaling factor; typically 2 * lora_r
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# ── Batch / gradient settings ────────────────────────────────────────────────
+batch_size: 1
+# T4 constraint. Do not increase unless you switch to gradient checkpointing.
+
+gradient_accumulation_steps: 8
+# Effective batch size = batch_size * gradient_accumulation_steps = 8.
+# Raise to 16 if loss is noisy (doubles effective batch at the same VRAM cost).
+
+# ── Optimizer ───────────────────────────────────────────────────────────────
+optimizer: paged_adamw_8bit
+# paged_adamw_8bit reduces optimizer memory footprint on T4.
+
+# ── Learning rate ───────────────────────────────────────────────────────────
+learning_rate: 0.00002   # 2e-5; typical range for SimPO is 1e-5 to 5e-5
+lr_scheduler: cosine
+warmup_ratio: 0.1
+
+# ── SimPO-specific loss hyperparameters ─────────────────────────────────────
+simpo_beta: 2.0      # reward scaling; increase if the model collapses to one label
+simpo_gamma: 0.5     # length-normalization coefficient
+
+# ── Training duration ────────────────────────────────────────────────────────
+epochs: 1
+# Start with 1 epoch and evaluate on dev before deciding to run more.
+# Suggested range: 1–3. Overfitting risk is high on 100 training examples.
+
+max_steps: -1
+# Set to a positive integer to cap total steps regardless of epoch count.
+
+# ── Mixed precision ─────────────────────────────────────────────────────────
+fp16: true
+# Use bf16: true instead if your Colab instance supports it (A100/newer T4).
+
+# ── Logging and checkpointing ────────────────────────────────────────────────
+logging_steps: 10
+save_steps: 50
+eval_strategy: steps
+eval_steps: 50
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+
+# ── Data files ───────────────────────────────────────────────────────────────
+train_file: training/data/train_preferences.jsonl
+dev_file: training/data/dev_preferences.jsonl
+test_file: training/data/test_preferences.jsonl
+# WARNING: do NOT substitute tenacious_bench_seed_200.jsonl (deprecated).
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output_dir: outputs/tenacious-judge-simpo-lora
+# The LoRA adapter weights will be saved here after training.
+# Push to HuggingFace Hub or zip and download before the Colab session ends.
+
+# ── Runtime target ───────────────────────────────────────────────────────────
+target_runtime: Google Colab T4
+# Estimated training time at these settings: 15–35 min for 1 epoch on 100 rows.
