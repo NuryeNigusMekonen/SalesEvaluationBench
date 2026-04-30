@@ -2,6 +2,7 @@ import json
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 from agent.scheduling.calcom import calcom_client
@@ -46,7 +47,30 @@ class SmsChannel:
         *,
         allow_warm_lead: bool = False,
         booking_link: str | None = None,
+        prospect_context: dict | None = None,
+        hiring_signal_brief: dict | None = None,
+        competitor_gap_brief: dict | None = None,
     ) -> ToolExecutionResult:
+        review = review_before_action(
+            {
+                "prospect_context": prospect_context
+                or {"prospect_id": prospect_id, "contact_phone": phone_number},
+                "hiring_signal_brief": hiring_signal_brief or {},
+                "competitor_gap_brief": competitor_gap_brief or {},
+                "agent_output": body,
+                "action_type": "sms",
+                "channel": "sms",
+                "prospect_id": prospect_id,
+            }
+        )
+        if not review["allow"]:
+            return ToolExecutionResult(
+                name="sms",
+                mode=self.status().mode,
+                status="skipped",
+                message=f"SMS blocked by Tenacious judge: {review['reason']}",
+            )
+
         payload = {
             "provider": settings.sms_provider,
             "draft": True,
@@ -142,6 +166,9 @@ class SmsChannel:
         contact_name: str | None,
         contact_email: str | None,
         allow_warm_lead: bool = False,
+        prospect_context: dict | None = None,
+        hiring_signal_brief: dict | None = None,
+        competitor_gap_brief: dict | None = None,
     ) -> tuple[ToolExecutionResult, str]:
         booking_link, _ = calcom_client.generate_booking_link(
             company_name=company_name,
@@ -159,6 +186,16 @@ class SmsChannel:
             prospect_id=prospect_id,
             allow_warm_lead=allow_warm_lead,
             booking_link=booking_link,
+            prospect_context=prospect_context
+            or {
+                "prospect_id": prospect_id,
+                "company_name": company_name,
+                "contact_name": contact_name,
+                "contact_email": contact_email,
+                "contact_phone": phone_number,
+            },
+            hiring_signal_brief=hiring_signal_brief,
+            competitor_gap_brief=competitor_gap_brief,
         )
         return result, body
 

@@ -2,6 +2,7 @@ import json
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 from agent.scheduling.calcom import calcom_client
@@ -96,7 +97,37 @@ class EmailChannel:
         )
         return str(artifact_path)
 
-    def send(self, recipient: str | None, subject: str, body: str, prospect_id: str) -> ToolExecutionResult:
+    def send(
+        self,
+        recipient: str | None,
+        subject: str,
+        body: str,
+        prospect_id: str,
+        *,
+        prospect_context: dict | None = None,
+        hiring_signal_brief: dict | None = None,
+        competitor_gap_brief: dict | None = None,
+    ) -> ToolExecutionResult:
+        review = review_before_action(
+            {
+                "prospect_context": prospect_context
+                or {"prospect_id": prospect_id, "contact_email": recipient},
+                "hiring_signal_brief": hiring_signal_brief or {},
+                "competitor_gap_brief": competitor_gap_brief or {},
+                "agent_output": f"Subject: {subject}\n\n{body}",
+                "action_type": "email",
+                "channel": "email",
+                "prospect_id": prospect_id,
+            }
+        )
+        if not review["allow"]:
+            return ToolExecutionResult(
+                name="email",
+                mode=self.status().mode,
+                status="skipped",
+                message=f"Email blocked by Tenacious judge: {review['reason']}",
+            )
+
         payload = {
             "provider": settings.email_provider,
             "draft": True,
@@ -222,6 +253,12 @@ class EmailChannel:
             subject=f"Booking options for {company_name}",
             body=body,
             prospect_id=prospect_id,
+            prospect_context={
+                "prospect_id": prospect_id,
+                "company_name": company_name,
+                "contact_name": contact_name,
+                "contact_email": contact_email,
+            },
         )
         return result, body
 

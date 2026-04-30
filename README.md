@@ -155,6 +155,34 @@ See [training/COLAB_TRAINING_GUIDE.md](training/COLAB_TRAINING_GUIDE.md) for the
 3. Run held-out evaluation (`training/data/test_preferences.jsonl`) once, at the end.
 4. Target: average scoring_evaluator score ≥ 70 / 100 on held-out split.
 
+## Week 11 — Tenacious v0.2 Judge Adapter Guardrail
+
+The Tenacious v0.2 adapter is a local critic/guardrail for the Week 10 Conversion Engine. It is not the sales generator: the existing agent still drafts outreach, replies, CRM updates, and calendar actions, while the judge reviews candidate actions before they are sent, logged as final, or committed.
+
+Place the unzipped local adapter at:
+
+```bash
+outputs/models/tenacious-judge-v02-simpo-lora/
+```
+
+Enable the guardrail explicitly:
+
+```bash
+TENACIOUS_JUDGE_ENABLED=true
+TENACIOUS_JUDGE_ADAPTER_PATH=outputs/models/tenacious-judge-v02-simpo-lora
+TENACIOUS_JUDGE_BASE_MODEL=Qwen/Qwen2.5-3B-Instruct
+TENACIOUS_JUDGE_MAX_NEW_TOKENS=256
+```
+
+Default behavior remains unchanged with `TENACIOUS_JUDGE_ENABLED=false`. Inference is local and does not use a paid API by default; if the adapter, base model cache, or ML dependencies are unavailable, actions are routed to human review rather than allowed. Demo commands:
+
+```bash
+python scripts/demo_judge_adapter.py --mock
+python scripts/demo_judge_adapter.py --real
+```
+
+Adapter weights are local artifacts only and are ignored by GitHub (`outputs/models/`, `*.safetensors`, and `*.zip`). Final evaluation summary: Combined dev 93.3%, v0.2 dev 86.7%, v0.2 held-out test 80.0%. Held-out was run once after dev review and was not used for tuning.
+
 ### Cost Discipline
 
 - Compute envelope: **$10 per trainee** (challenge limit).

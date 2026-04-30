@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 from agent.utils.http import request_json
 
@@ -30,6 +31,34 @@ class HubSpotMCPClient:
         artifact_path = settings.outbox_dir / f"{prospect_id}_hubspot.json"
         artifact_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return str(artifact_path)
+
+    def _guard_crm_action(
+        self,
+        *,
+        prospect_id: str,
+        prospect_context: dict,
+        agent_output: dict,
+        action_type: str,
+    ) -> ToolExecutionResult | None:
+        review = review_before_action(
+            {
+                "prospect_context": prospect_context,
+                "hiring_signal_brief": prospect_context.get("hiring_signal_brief", {}),
+                "competitor_gap_brief": prospect_context.get("competitor_gap_brief", {}),
+                "agent_output": json.dumps(agent_output, ensure_ascii=False, default=str),
+                "action_type": action_type,
+                "channel": "crm",
+                "prospect_id": prospect_id,
+            }
+        )
+        if review["allow"]:
+            return None
+        return ToolExecutionResult(
+            name="hubspot",
+            mode=self.status().mode,
+            status="skipped",
+            message=f"HubSpot action blocked by Tenacious judge: {review['reason']}",
+        )
 
     def _contact_properties(self, payload: dict) -> dict[str, object]:
         return {
@@ -208,6 +237,14 @@ class HubSpotMCPClient:
             "payload": payload,
             "transport": "hubspot_mcp",
         }
+        blocked = self._guard_crm_action(
+            prospect_id=prospect_id,
+            prospect_context=payload,
+            agent_output=artifact_payload,
+            action_type="crm_update",
+        )
+        if blocked:
+            return blocked
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
         email = payload.get("email")
@@ -294,6 +331,14 @@ class HubSpotMCPClient:
             "enrichment_fields": enrichment_fields,
             "transport": "hubspot_mcp",
         }
+        blocked = self._guard_crm_action(
+            prospect_id=prospect_id,
+            prospect_context={"prospect_id": prospect_id},
+            agent_output=artifact_payload,
+            action_type="crm_update",
+        )
+        if blocked:
+            return blocked
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
         if status.configured and contact_id:
@@ -391,6 +436,14 @@ class HubSpotMCPClient:
             "logged_at": datetime.now(timezone.utc).isoformat(),
             "transport": "hubspot_mcp",
         }
+        blocked = self._guard_crm_action(
+            prospect_id=prospect_id,
+            prospect_context={"prospect_id": prospect_id, **(metadata or {})},
+            agent_output=artifact_payload,
+            action_type="crm_update",
+        )
+        if blocked:
+            return blocked
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
         if status.configured and contact_id:

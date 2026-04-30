@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 from agent.config import settings
+from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 
 
@@ -80,6 +81,32 @@ class CalComClient:
         webhook confirmation does the orchestrator call handle_calendar_confirmation() and
         mark the prospect as "booked" in SQLite.
         """
+        review = review_before_action(
+            {
+                "prospect_context": {
+                    "prospect_id": prospect_id,
+                    "company_name": company_name,
+                    "contact_email": contact_email,
+                },
+                "hiring_signal_brief": {},
+                "competitor_gap_brief": {},
+                "agent_output": (
+                    "Generate a Cal.com scheduling preview and booking link for "
+                    f"{company_name}."
+                ),
+                "action_type": "calendar_action",
+                "channel": "calendar",
+                "prospect_id": prospect_id,
+            }
+        )
+        if not review["allow"]:
+            return ToolExecutionResult(
+                name="calcom",
+                mode=self.status().mode,
+                status="skipped",
+                message=f"Calendar action blocked by Tenacious judge: {review['reason']}",
+            )
+
         booking_link, artifact_ref = self.generate_booking_link(
             company_name=company_name,
             contact_email=contact_email,

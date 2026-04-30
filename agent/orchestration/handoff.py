@@ -362,6 +362,9 @@ class ChannelHandoffManager:
                 contact_name=snapshot.prospect.contact_name,
                 contact_email=snapshot.prospect.contact_email,
                 allow_warm_lead=allow_warm_lead,
+                prospect_context=snapshot.prospect.model_dump(mode="json"),
+                hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
+                competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
             )
         else:
             sms_result = sms_channel.send(
@@ -369,6 +372,9 @@ class ChannelHandoffManager:
                 body=body or "Warm-lead scheduling handoff for Tenacious.",
                 prospect_id=snapshot.prospect.prospect_id,
                 allow_warm_lead=allow_warm_lead,
+                prospect_context=snapshot.prospect.model_dump(mode="json"),
+                hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
+                competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
             )
         if sms_result.status in {"executed", "previewed"}:
             self.repository.record_interaction_event(
@@ -561,6 +567,9 @@ class ChannelHandoffManager:
                 subject=draft_subject,
                 body=draft_body,
                 prospect_id=snapshot.prospect.prospect_id,
+                prospect_context=snapshot.prospect.model_dump(mode="json"),
+                hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
+                competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
             )
             side_effects.append(email_result)
             if email_result.status == "error":

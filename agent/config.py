@@ -114,6 +114,22 @@ class Settings:
         "yes",
     }
     tau2_bench_path: Path = Path(os.getenv("TAU2_BENCH_PATH", project_root / "eval" / "tau2-bench"))
+    tenacious_judge_enabled: bool = os.getenv("TENACIOUS_JUDGE_ENABLED", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    tenacious_judge_adapter_path: Path = Path(
+        os.getenv(
+            "TENACIOUS_JUDGE_ADAPTER_PATH",
+            project_root / "outputs" / "models" / "tenacious-judge-v02-simpo-lora",
+        )
+    )
+    tenacious_judge_base_model: str = os.getenv(
+        "TENACIOUS_JUDGE_BASE_MODEL",
+        "Qwen/Qwen2.5-3B-Instruct",
+    )
+    tenacious_judge_max_new_tokens: int = int(os.getenv("TENACIOUS_JUDGE_MAX_NEW_TOKENS", "256"))
 
 
 settings = Settings()

@@ -16,9 +16,11 @@ agent/data/archive/
 agent/data/outbox/
 agent/data/webhooks/
 agent/data/traces.jsonl
+agent/data/judge_reviews.jsonl
 agent/data/submission_run_summary.json
 eval/tau2-bench
-docs/
+docs/*
+!docs/week11_model_artifacts.md
 uv.lock
 /memo.pdf
 reports/
@@ -33,3 +35,7 @@ outputs/tenacious-judge-simpo-lora/
 outputs/models/
 *.safetensors
 *.zip
+huggingface_tokenizers_cache/
+unsloth_compiled_cache/
+!outputs/reports/
+!outputs/reports/*.json

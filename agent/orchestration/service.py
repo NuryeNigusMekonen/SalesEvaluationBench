@@ -18,6 +18,7 @@ from agent.enrichment.connectors import (
     layoffs_connector,
     leadership_connector,
 )
+from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.evaluation.tau2 import tau2_adapter
 from agent.generation.service import generation_service
 from agent.observability.langfuse import langfuse_client
@@ -182,6 +183,9 @@ class Orchestrator:
             subject=subject,
             body=body,
             prospect_id=snapshot.prospect.prospect_id,
+            prospect_context=snapshot.prospect.model_dump(mode="json"),
+            hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
+            competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
         )
         self._handle_tool_result(email_result, snapshot.prospect.prospect_id, "initial_email_send", critical=True)
         self.repository.record_interaction_event(
@@ -473,6 +477,9 @@ class Orchestrator:
                 subject=reply_subject,
                 body=reply_body,
                 prospect_id=snapshot.prospect.prospect_id,
+                prospect_context=snapshot.prospect.model_dump(mode="json"),
+                hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
+                competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
             )
             ok = self._handle_tool_result(
                 reply_email_result,
@@ -574,6 +581,26 @@ class Orchestrator:
         if snapshot is None:
             self.trace_logger.log("calendar_confirmation_unmatched", confirmation)
             return {"ok": False, "matched": False, "reason": "No prospect matched the booking confirmation."}
+
+        review = review_before_action(
+            {
+                "prospect_context": snapshot.prospect.model_dump(mode="json"),
+                "hiring_signal_brief": snapshot.hiring_signal_brief.model_dump(mode="json"),
+                "competitor_gap_brief": snapshot.competitor_gap_brief.model_dump(mode="json"),
+                "agent_output": json.dumps(confirmation, ensure_ascii=False),
+                "action_type": "calendar_action",
+                "channel": "calendar",
+                "prospect_id": snapshot.prospect.prospect_id,
+            }
+        )
+        if not review["allow"]:
+            return {
+                "ok": False,
+                "matched": True,
+                "prospect_id": snapshot.prospect.prospect_id,
+                "route_to_review": review["route_to_review"],
+                "reason": review["reason"],
+            }
 
         self.repository.record_interaction_event(
             snapshot.prospect.prospect_id,
