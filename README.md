@@ -91,6 +91,78 @@ The evaluator returns a numeric score out of `100` with sub-checks for verdict m
 - Complete the second inter-rater labeling round and revise any ambiguous rubric rows
 - Train the small judge adapter, run ablations, and prepare the Hugging Face dataset/model cards
 
+## Week 11 — Training-Ready Codebase
+
+### Dataset
+
+| Item | Path |
+|------|------|
+| Validated seed (v2) | `training/data/tenacious_bench_seed_200_v2.jsonl` |
+| ⚠️ Deprecated seed (do not use) | ~~`training/data/tenacious_bench_seed_200.jsonl`~~ |
+
+### Benchmark package
+
+| Split | Path | Count |
+|-------|------|-------|
+| Train | `tenacious_bench_v0.1/train/tasks.jsonl` | 100 |
+| Dev | `tenacious_bench_v0.1/dev/tasks.jsonl` | 60 |
+| Held-out | `tenacious_bench_v0.1/held_out/tasks.jsonl` | 40 |
+| Summary | `tenacious_bench_v0.1/summary.json` | — |
+
+### Preference conversion files
+
+| Split | Path | Count |
+|-------|------|-------|
+| Train preferences | `training/data/train_preferences.jsonl` | 100 |
+| Dev preferences | `training/data/dev_preferences.jsonl` | 60 |
+| Test preferences | `training/data/test_preferences.jsonl` | 40 |
+
+### Validation commands
+
+Run in this order before any Colab training session:
+
+```bash
+# 1. Validate seed dataset
+python3 training/validate_tenacious_bench.py training/data/tenacious_bench_seed_200_v2.jsonl \
+    --expected-count 200 \
+    --expected-risk-distribution \
+    unsupported_pricing_or_scope_claim=40,overclaimed_signal_or_maturity_claim=40,generic_outreach_ungrounded=40,wrong_crm_hubspot_calendar_next_action=40,reply_escalation_or_objection_failure=40
+
+# 2. Validate benchmark split package
+python3 training/validate_benchmark_package.py
+
+# 3. Convert tasks to preference pairs
+python3 training/convert_tasks_to_preferences.py
+
+# 4. Validate preference splits
+python3 training/validate_preference_splits.py
+```
+
+### Colab training plan
+
+See [training/COLAB_TRAINING_GUIDE.md](training/COLAB_TRAINING_GUIDE.md) for the full step-by-step guide.
+
+- Base model: `Qwen/Qwen2.5-3B-Instruct`
+- Training method: SimPO + QLoRA (4-bit, Unsloth)
+- Target runtime: Google Colab T4
+- Config: [training/configs/simpo_qlora_colab.yaml](training/configs/simpo_qlora_colab.yaml)
+- Output adapter: `outputs/tenacious-judge-simpo-lora/`
+
+### Final evaluation plan
+
+1. Run dev evaluation (`training/data/dev_preferences.jsonl`) after each training epoch.
+2. Tune hyperparameters on dev only.
+3. Run held-out evaluation (`training/data/test_preferences.jsonl`) once, at the end.
+4. Target: average scoring_evaluator score ≥ 70 / 100 on held-out split.
+
+### ⚠️ Deprecated seed warning
+
+**Never** use `training/data/tenacious_bench_seed_200.jsonl` in any training, evaluation,
+or conversion script. Use `tenacious_bench_seed_200_v2.jsonl` exclusively.
+The `validate_benchmark_package.py` script will error if the deprecated file is referenced.
+
+---
+
 ## Week 10 agent context
 
 The underlying product is still the same Tenacious conversion agent:
