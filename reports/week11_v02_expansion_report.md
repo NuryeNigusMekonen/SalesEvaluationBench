@@ -16,7 +16,7 @@ The expansion uses `docs/Tenacious Style Guide and 12 Good-Bad Examples v2.md` a
 - Manual review rows: 100
 - Existing v0.1 benchmark: not modified
 - Existing adapter: not modified
-- Semantic repair: `risk_tags` now identify the scenario family, while `actual_failure_modes` records what the output really contains for that row
+- Semantic repair: `risk_tags` now describe scenario families and `actual_failure_modes` now describe the concrete row outcome
 
 ## Distribution By Risk Focus
 
@@ -46,23 +46,23 @@ The expansion uses `docs/Tenacious Style Guide and 12 Good-Bad Examples v2.md` a
 
 ## Distribution By Actual Failure Modes
 
-- `ambiguous_channel_state`: 10
+- `ambiguous_channel_state`: 7
 - `banned_phrase_violation`: 6
 - `bench_language_external`: 4
 - `channel_rule_violation`: 13
 - `cold_attachment_violation`: 6
-- `custom_pricing_review_needed`: 3
+- `custom_pricing_review_needed`: 4
 - `directness_failure`: 6
 - `fake_urgency_or_discount`: 1
 - `grounding_failure`: 21
 - `honesty_failure`: 15
-- `legal_escalation_needed`: 7
+- `legal_escalation_needed`: 4
 - `multi_ask_violation`: 3
 - `non_condescending_failure`: 6
 - `professionalism_failure`: 5
 - `reengagement_without_new_content`: 5
 - `signal_fabrication`: 5
-- `weak_signal_review_needed`: 10
+- `weak_signal_review_needed`: 7
 
 ## Distribution By Task Type
 
@@ -82,7 +82,20 @@ The expansion uses `docs/Tenacious Style Guide and 12 Good-Bad Examples v2.md` a
 
 ## Validation Result
 
-`python3 training/validate_v02_expansion.py` should confirm 100 valid JSONL rows, unique task IDs, seed-only split values, `.example` domains, manual-review gating on every row, non-empty `risk_tags`, verdict-consistent `actual_failure_modes`, no duplicate `agent_output` values, no copied long style-guide example bodies, and v2 style-guide source grounding.
+`python3 training/validate_v02_expansion.py` passed. The validator now checks row count, schema fields, `.example` domains, source grounding, exact verdict distributions, `risk_tags`, verdict-aware `actual_failure_modes`, duplicate `agent_output`, duplicate `chosen`, duplicate `rejected`, `expected_reason` repeated more than 3 times, and rejected-core phrases repeated more than 5 times.
+
+## Preference Diversity Repair
+
+The high-priority repeated preference clusters were repaired before any split work. The main changes were:
+
+- pass rows in `tb_v02_0018` to `tb_v02_0025` now carry row-specific wrong critiques tied to the exact signal logic being misread
+- review rows in `tb_v02_0026` to `tb_v02_0030` now separate weak-signal, confidence, source-support, segment, and channel-path uncertainty
+- CRM and calendar rows in `tb_v02_0043` to `tb_v02_0055` now test distinct operational mistakes instead of repeating one conservative-workflow rationale
+- resource-touch and no-signal rows in `tb_v02_0067` to `tb_v02_0080` now name the exact visible signal, the exact missing corroboration, and the exact allowed outreach action
+- escalation rows in `tb_v02_0084` to `tb_v02_0090` now distinguish DPA, MSA, healthcare proof, named references, sector proof, combined pricing-plus-legal, and ambiguous security-packet review
+- pricing rows in `tb_v02_0093` to `tb_v02_0100` now distinguish public bands, one-month minimum, custom totals, multi-phase scope, volume pricing, urgent pricing pressure, unsupported capacity, and delivery-lead routing
+
+This repair improved pair diversity without changing task IDs, row count, split values, risk-focus distribution, expected-verdict distribution, or source grounding.
 
 ## Contamination Controls
 

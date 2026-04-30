@@ -83,6 +83,12 @@ def word_windows(text: str, size: int = 18) -> set[str]:
     return {" ".join(words[i : i + size]) for i in range(0, max(0, len(words) - size + 1))}
 
 
+def strip_verdict_prefix(text: str) -> str:
+    normalized = normalize(text)
+    parts = normalized.split(". ", 1)
+    return parts[1] if len(parts) == 2 else normalized
+
+
 def load_rows(path: Path) -> tuple[list[dict], list[str]]:
     errors: list[str] = []
     rows: list[dict] = []
@@ -121,6 +127,10 @@ def main() -> int:
     verdict_counts: Counter[str] = Counter()
     risk_tag_counts: Counter[str] = Counter()
     actual_failure_counts: Counter[str] = Counter()
+    chosen_text_counts: Counter[str] = Counter()
+    rejected_text_counts: Counter[str] = Counter()
+    expected_reason_counts: Counter[str] = Counter()
+    rejected_core_counts: Counter[str] = Counter()
 
     for index, row in enumerate(rows, start=1):
         prefix = f"row {index}"
@@ -168,6 +178,11 @@ def main() -> int:
         if normalize(str(row["chosen"])) == normalize(str(row["rejected"])):
             errors.append(f"{prefix}: chosen equals rejected")
 
+        chosen_text_counts[normalize(str(row["chosen"]))] += 1
+        rejected_text_counts[normalize(str(row["rejected"]))] += 1
+        expected_reason_counts[normalize(str(row["expected_reason"]))] += 1
+        rejected_core_counts[strip_verdict_prefix(str(row["rejected"]))] += 1
+
         risk_tags = row["risk_tags"]
         if not isinstance(risk_tags, list) or not risk_tags:
             errors.append(f"{prefix}: risk_tags must be a non-empty list")
@@ -203,6 +218,20 @@ def main() -> int:
         errors.append(f"risk_focus distribution mismatch: {dict(risk_counts)}")
     if dict(verdict_counts) != TARGET_VERDICTS:
         errors.append(f"expected_verdict distribution mismatch: {dict(verdict_counts)}")
+
+    duplicate_chosen = [text for text, count in chosen_text_counts.items() if count > 1]
+    duplicate_rejected = [text for text, count in rejected_text_counts.items() if count > 1]
+    repeated_reasons = [text for text, count in expected_reason_counts.items() if count > 3]
+    repeated_rejected_cores = [text for text, count in rejected_core_counts.items() if count > 5]
+
+    for text in duplicate_chosen[:10]:
+        errors.append(f"duplicate chosen text: {text[:120]!r}")
+    for text in duplicate_rejected[:10]:
+        errors.append(f"duplicate rejected text: {text[:120]!r}")
+    for text in repeated_reasons[:10]:
+        errors.append(f"expected_reason repeated more than 3 times: {text[:120]!r}")
+    for text in repeated_rejected_cores[:10]:
+        errors.append(f"rejected phrase repeated more than 5 times: {text[:120]!r}")
 
     print("Tenacious-Bench v0.2 expansion validation")
     print(f"dataset: {DATASET.relative_to(ROOT)}")
