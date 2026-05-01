@@ -26,6 +26,8 @@
     "input": {
       "prospect_context": "object",
       "hiring_signal_brief": "object",
+      "bench_summary": "object",
+      "prior_thread": "array of thread messages",
       "competitor_gap_brief": "object",
       "agent_output": "string",
       "judge_instruction": "string"
@@ -106,6 +108,23 @@
             "sufficient": true
           }
         },
+        "bench_summary": {
+          "available_capacity": {
+            "python": 7,
+            "data": 9
+          },
+          "seniority_mix": {
+            "senior_python": 3,
+            "senior_data": 2
+          },
+          "notes": "Public summary allows directional staffing claims only."
+        },
+        "prior_thread": [
+          {
+            "role": "prospect",
+            "text": "What would this cost for a team?"
+          }
+        ],
         "competitor_gap_brief": {
           "confidence": 0.58,
           "safe_gap_framing": "Do not use peer signal to justify a total contract value."
@@ -176,6 +195,21 @@
             "requested_capacity": 12
           }
         },
+        "bench_summary": {
+          "available_capacity": {
+            "ml": 5
+          },
+          "senior_capacity": {
+            "ml": 1
+          },
+          "request_context": "Prospect asks for 12 senior ML engineers."
+        },
+        "prior_thread": [
+          {
+            "role": "assistant",
+            "text": "Initial outbound was sent with a discovery-call CTA."
+          }
+        ],
         "competitor_gap_brief": {
           "confidence": 0.7,
           "top_quartile_practices": [
@@ -241,6 +275,20 @@
           "ai_maturity_score": 0,
           "confidence": 0.62
         },
+        "bench_summary": {
+          "available_capacity": {
+            "python": 7,
+            "data": 9,
+            "ml": 5
+          },
+          "segment_gate": "Specialized capability pitch requires AI-readiness >= 2."
+        },
+        "prior_thread": [
+          {
+            "role": "system",
+            "text": "No prior customer thread; this is a pre-outreach classification step."
+          }
+        ],
         "competitor_gap_brief": {
           "confidence": 0.0,
           "safe_gap_framing": "No competitor-gap support exists for this scenario."

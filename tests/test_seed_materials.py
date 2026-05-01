@@ -284,6 +284,67 @@ def test_pricing_reply_no_invented_numbers() -> None:
         assert phrase not in body_lower, f"Pricing reply contains banned phrase: {phrase!r}"
 
 
+def test_differentiation_reply_avoids_generic_capacity_overclaim() -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    snapshot_like = type("S", (), {
+        "prospect": _minimal_prospect(segment="engineering_leadership_transition"),
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="Thanks for the context. What makes Tenacious different?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "send_email"
+    body_lower = decision.reply_draft.lower()
+    assert "managed delivery" in body_lower
+    assert "named engineers" in body_lower
+    forbidden = ["world-class", "top talent", "any stack", "60 engineers", "7-14 days", "7–14 days"]
+    for phrase in forbidden:
+        assert phrase not in body_lower, f"Differentiation reply contains overclaim: {phrase!r}"
+
+
+def test_update_reply_avoids_generic_capacity_overclaim() -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    snapshot_like = type("S", (), {
+        "prospect": _minimal_prospect(segment="engineering_leadership_transition"),
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="i am just following do you have an update?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "send_email"
+    body_lower = decision.reply_draft.lower()
+    assert "strongest public signal" in body_lower
+    forbidden = ["world-class", "top talent", "any stack", "60 engineers", "7-14 days", "7–14 days"]
+    for phrase in forbidden:
+        assert phrase not in body_lower, f"Update reply contains overclaim: {phrase!r}"
+
+
 # ---------------------------------------------------------------------------
 # 6. Unsupported bench request routes to human review
 # ---------------------------------------------------------------------------

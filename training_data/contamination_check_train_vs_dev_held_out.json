@@ -1,0 +1,46 @@
+{
+  "report_name": "Act III Path-B contamination check",
+  "checked_at": "2026-05-01",
+  "status": "pass",
+  "criteria": {
+    "task_id_overlap": "must be zero between train and dev/held_out",
+    "scenario_id_overlap": "must be zero between train and dev/held_out",
+    "chosen_rejected_pair_overlap": "must be zero between train and dev/held_out"
+  },
+  "v0_1_preferences": {
+    "train_vs_dev": {
+      "left_count": 100,
+      "right_count": 60,
+      "task_id_overlap_count": 0,
+      "scenario_id_overlap_count": 0,
+      "chosen_rejected_pair_overlap_count": 0,
+      "passed": true
+    },
+    "train_vs_held_out": {
+      "left_count": 100,
+      "right_count": 40,
+      "task_id_overlap_count": 0,
+      "scenario_id_overlap_count": 0,
+      "chosen_rejected_pair_overlap_count": 0,
+      "passed": true
+    }
+  },
+  "v0_2_preferences": {
+    "train_vs_dev": {
+      "left_count": 70,
+      "right_count": 15,
+      "task_id_overlap_count": 0,
+      "scenario_id_overlap_count": 0,
+      "chosen_rejected_pair_overlap_count": 0,
+      "passed": true
+    },
+    "train_vs_held_out": {
+      "left_count": 70,
+      "right_count": 15,
+      "task_id_overlap_count": 0,
+      "scenario_id_overlap_count": 0,
+      "chosen_rejected_pair_overlap_count": 0,
+      "passed": true
+    }
+  }
+}

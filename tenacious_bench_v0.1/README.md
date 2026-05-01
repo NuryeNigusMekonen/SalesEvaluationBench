@@ -8,6 +8,9 @@ This folder contains the Week 11 interim benchmark partitions.
 - `dev/tasks.jsonl`
 - `held_out/tasks.jsonl`
 - `summary.json`
+- `datasheet.md`
+- `contamination_check.json`
+- `inter_rater_agreement.md`
 
 ## Composition
 
