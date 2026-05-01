@@ -12,6 +12,7 @@ __pycache__/
 *.sqlite3
 command.md
 *.log
+backup_v01_mixed/
 agent/data/archive/
 agent/data/outbox/
 agent/data/webhooks/
@@ -24,7 +25,7 @@ docs/*
 uv.lock
 /memo.pdf
 reports/
-
+training/salesagent.ipynb
 # Local model artifacts
 outputs/tenacious-judge-v02-simpo-lora/
 outputs/tenacious-judge-simpo-lora/

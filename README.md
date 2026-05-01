@@ -84,6 +84,15 @@ The evaluator returns a numeric score out of `100` with sub-checks for verdict m
 - [contamination_check.json](/home/nurye/Desktop/TRP1/week10/TheConversionEngine/contamination_check.json)
 - [inter_rater_agreement.md](/home/nurye/Desktop/TRP1/week10/TheConversionEngine/inter_rater_agreement.md)
 
+## Act V Public Artifacts
+
+- Hugging Face dataset: `https://huggingface.co/datasets/Nurye/tenacious_bench_v0.1`
+- Hugging Face model: `N/A (Path B)`
+- Technical blog post: `https://open.substack.com/pub/nuryenigus/p/tenacious-style-sales-agents?r=8bo5sh&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true`
+- Community issue/discussion: `https://github.com/sierra-research/tau2-bench/issues/276`
+- Executive memo PDF: [memo.pdf](/home/nurye/Desktop/TRP1/week10/TheConversionEngine/memo.pdf)
+- Evidence graph: [evidence_graph.json](/home/nurye/Desktop/TRP1/week10/TheConversionEngine/evidence_graph.json)
+
 ## What is next for Days 4-7
 
 - Convert the `train/` split into SimPO preference pairs for Path B
@@ -179,9 +188,91 @@ Default behavior remains unchanged with `TENACIOUS_JUDGE_ENABLED=false`. Inferen
 ```bash
 python scripts/demo_judge_adapter.py --mock
 python scripts/demo_judge_adapter.py --real
+python scripts/demo_judge_adapter.py --mock --comparison
 ```
 
 Adapter weights are local artifacts only and are ignored by GitHub (`outputs/models/`, `*.safetensors`, and `*.zip`). Final evaluation summary: Combined dev 93.3%, v0.2 dev 86.7%, v0.2 held-out test 80.0%. Held-out was run once after dev review and was not used for tuning.
+
+## Week 10 vs Week 11 Comparison Mode
+
+Comparison mode shows the Week 10 candidate action beside the Week 11 judge-reviewed decision. Week 11 is a judge, not a generator: it does not rewrite the message. It only returns `PASS`, `FAIL`, or `HUMAN REVIEW`, and the engine maps that to `ALLOW`, `BLOCK`, or `ROUTE TO HUMAN`.
+
+Environment:
+
+```bash
+TENACIOUS_JUDGE_ENABLED=true
+TENACIOUS_JUDGE_ADAPTER_PATH=outputs/models/tenacious-judge-v02-simpo-lora
+TENACIOUS_COMPARISON_MODE=true
+TENACIOUS_COMPARISON_DRY_RUN=true
+```
+
+Defaults are safe:
+
+```bash
+TENACIOUS_COMPARISON_MODE=false
+TENACIOUS_COMPARISON_DRY_RUN=true
+```
+
+Run the dashboard:
+
+```bash
+uvicorn agent.main:app --reload
+```
+
+Open `/dashboard`, go to `Simulator`, and enable `Week 11 Judge Comparison`. The simulator will show two panels for each compared reply: `Week 10 Baseline Output` and `Week 11 Judge Review`. In dry-run mode, email/SMS/CRM/calendar actions are previewed only:
+
+- `PASS`: the baseline is allowed and the preview says `Would send`.
+- `FAIL`: the output is blocked and the preview says `Blocked by Week 11 judge`.
+- `HUMAN REVIEW`: the action is routed to a person and the preview says `Needs human review`.
+
+Run the mock comparison demo:
+
+```bash
+python scripts/demo_judge_adapter.py --mock --comparison
+```
+
+Blocked outputs are the visible improvement: unsafe pricing claims, SMS/calendar escalation without consent, generic capacity overclaims, and opt-out follow-ups are prevented instead of being polished and sent. Comparison reviews are logged locally at `agent/data/comparison_reviews.jsonl` and exposed through `GET /api/comparison-reviews`; the simulator uses `POST /api/simulator/compare-reply`.
+
+### Week 11 Guardrail Safety
+
+Every outbound action (email, SMS, HubSpot CRM write, calendar confirmation) passes through four gates in order. A real provider call is only made when all four pass.
+
+```
+judge gate → dry-run gate → outbound gate → provider-config gate
+```
+
+| Gate | Env var / condition | Block result |
+|---|---|---|
+| Judge | `TENACIOUS_JUDGE_ENABLED=true` + verdict | `skipped` or `route_to_review` |
+| Dry-run | `TENACIOUS_COMPARISON_MODE=true` AND `TENACIOUS_COMPARISON_DRY_RUN=true` | `previewed` (no external call) |
+| Outbound | `OUTBOUND_ENABLED=true` (email, SMS, HubSpot) | `previewed` if false |
+| Provider config | API key / token present | `previewed` if absent |
+
+**Dry-run guarantees** (`TENACIOUS_COMPARISON_DRY_RUN=true`):
+
+- Email: no POST to Resend or MailerSend; artifact written with `"status": "previewed"`.
+- SMS: no POST to Africa's Talking; artifact written with `"status": "previewed"`.
+- HubSpot: no contact search, no PATCH/POST to `api.hubapi.com`; artifact written with `"status": "previewed"`.
+- Calendar confirmation: `handle_calendar_confirmation()` returns `ok=false, dry_run=true` without committing the booking, updating prospect status, or triggering any downstream CRM write.
+- Comparison review is always logged to `agent/data/comparison_reviews.jsonl` regardless of dry-run state.
+
+**`OUTBOUND_ENABLED` behavior**:
+
+- Defaults to `false`. No live provider call is made unless explicitly set to `true`.
+- Email and SMS already required this flag via `status().configured`. HubSpot now requires it too: `configured = bool(outbound_enabled and hubspot_access_token)`.
+- Setting `OUTBOUND_ENABLED=false` prevents all Resend, MailerSend, Africa's Talking, and HubSpot API calls even when API credentials are present.
+
+**Judge-disabled warning**:
+
+When `OUTBOUND_ENABLED=true` and `TENACIOUS_JUDGE_ENABLED=false`, the dashboard runtime status and logs emit:
+
+> Outbound is enabled while Week 11 judge is disabled. Actions may bypass the trained guardrail.
+
+This is a visible warning, not a startup failure. Default Week 10 behavior (judge disabled) is preserved. The warning is surfaced in `GET /dashboard/state` under `tenacious_judge_runtime.judge_disabled_warning` and in the application log at WARNING level.
+
+**Judge unavailable — fail closed**:
+
+If the ML adapter is missing, dependencies are absent, or inference fails, `review_before_action()` returns `needs_human_review`. All real sends are blocked automatically.
 
 ### Cost Discipline
 

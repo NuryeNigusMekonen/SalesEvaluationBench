@@ -152,7 +152,7 @@ The benchmark is judge-oriented. Each task asks whether a candidate critic or ju
 
 ### Current inter-rater state
 
-The interim package includes a selected 30-task dev subset for the two-pass inter-rater exercise. Round 1 is represented by the checked-in author labels; Round 2 is still pending. Because of that, this is a pre-publication dataset state, not the final adjudicated public release.
+The interim package includes a selected 30-task dev subset for the two-pass inter-rater exercise. Round 1 is represented by the checked-in author labels, and Round 2 is documented in `inter_rater_agreement.md` with all five dimensions clearing the 80% threshold in this pass. The dataset remains labeled `0.1.0-interim` due to contamination and similarity limitations, not because inter-rater relabeling is missing.
 
 ## 6. Uses
 
