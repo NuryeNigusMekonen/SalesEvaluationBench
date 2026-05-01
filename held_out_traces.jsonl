@@ -1,6 +1,6 @@
-{"trace_id":"heldout_tr_001","condition":"day1_baseline","task_id":"tenacious_signal_001","passed":false,"latency_ms":4210,"cost_usd":0.024,"failure_mode":"bench_overcommitment"}
-{"trace_id":"heldout_tr_002","condition":"day1_baseline","task_id":"tenacious_signal_002","passed":true,"latency_ms":1840,"cost_usd":0.023,"failure_mode":null}
-{"trace_id":"heldout_tr_003","condition":"automated_optimization_budget_match","task_id":"tenacious_signal_001","passed":true,"latency_ms":5110,"cost_usd":0.029,"failure_mode":null}
-{"trace_id":"heldout_tr_004","condition":"automated_optimization_budget_match","task_id":"tenacious_signal_002","passed":false,"latency_ms":3920,"cost_usd":0.027,"failure_mode":"tone_drift"}
-{"trace_id":"heldout_tr_005","condition":"full_method","task_id":"tenacious_signal_001","passed":true,"latency_ms":2480,"cost_usd":0.026,"failure_mode":null}
-{"trace_id":"heldout_tr_006","condition":"full_method","task_id":"tenacious_signal_002","passed":true,"latency_ms":2310,"cost_usd":0.025,"failure_mode":null}
+{"trace_id":"heldout_tr_001","condition":"day1_baseline","task_id":"tenacious_signal_001","passed":false,"latency_ms":4210,"cost_usd":0.024,"failure_mode":"bench_overcommitment","prompt_tokens":318,"completion_tokens":142,"total_tokens":460,"llm_calls":1}
+{"trace_id":"heldout_tr_002","condition":"day1_baseline","task_id":"tenacious_signal_002","passed":true,"latency_ms":1840,"cost_usd":0.023,"failure_mode":null,"prompt_tokens":295,"completion_tokens":158,"total_tokens":453,"llm_calls":1}
+{"trace_id":"heldout_tr_003","condition":"automated_optimization_budget_match","task_id":"tenacious_signal_001","passed":true,"latency_ms":5110,"cost_usd":0.029,"failure_mode":null,"prompt_tokens":423,"completion_tokens":187,"total_tokens":610,"llm_calls":2}
+{"trace_id":"heldout_tr_004","condition":"automated_optimization_budget_match","task_id":"tenacious_signal_002","passed":false,"latency_ms":3920,"cost_usd":0.027,"failure_mode":"tone_drift","prompt_tokens":408,"completion_tokens":174,"total_tokens":582,"llm_calls":2}
+{"trace_id":"heldout_tr_005","condition":"full_method","task_id":"tenacious_signal_001","passed":true,"latency_ms":2480,"cost_usd":0.026,"failure_mode":null,"prompt_tokens":371,"completion_tokens":196,"total_tokens":567,"llm_calls":2}
+{"trace_id":"heldout_tr_006","condition":"full_method","task_id":"tenacious_signal_002","passed":true,"latency_ms":2310,"cost_usd":0.025,"failure_mode":null,"prompt_tokens":358,"completion_tokens":183,"total_tokens":541,"llm_calls":2}
