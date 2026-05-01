@@ -54,6 +54,17 @@ _CURIOUS_TOKENS = (
     "interested in learning", "curious about",
 )
 
+_DIFFERENTIATION_TOKENS = (
+    "what makes tenacious different", "what makes you different",
+    "what makes this different", "why tenacious", "how are you different",
+    "different from", "why are you different",
+)
+
+_UPDATE_TOKENS = (
+    "any update", "do you have an update", "following do you have an update",
+    "checking for an update", "checking on this", "where do things stand",
+)
+
 
 class ChannelHandoffManager:
     """Centralized state machine for channel transitions and warm-lead gating."""
@@ -167,7 +178,6 @@ class ChannelHandoffManager:
         """
         name = snapshot.prospect.contact_name or "there"
         segment = snapshot.prospect.primary_segment
-        b = seed_materials.baseline
         case_note = ""
         matched_case = seed_materials.find_case_study(segment)
         if matched_case:
@@ -175,24 +185,51 @@ class ChannelHandoffManager:
                 f"\n\nFor context: {matched_case.quotable} "
                 "Happy to share more detail on the discovery call."
             )
-        # Get segment-specific transcript phrase
-        phrases = seed_materials.get_transcript_phrases(segment)
-        segment_phrase = phrases[0] if phrases else ""
-        segment_note = f"\n\n{segment_phrase}" if segment_phrase else ""
+        signal_note = self._public_signal_note(snapshot)
 
         return (
-            "Tenacious Intelligence — Following Up",
+            "Tenacious Intelligence — Thread Update",
             f"Hi {name},\n\n"
-            "Thank you for staying in touch — I appreciate it.\n\n"
-            "Based on the signals we have been tracking, the most relevant next step is to "
-            "confirm which constraint is most pressing for your team right now — whether that "
-            "is recruiting velocity, a specific AI or data capability gap, or cost structure.\n\n"
-            f"Which of those is closest to where you are today?{case_note}{segment_note}\n\n"
-            f"For reference: we have {b.bench_ready} engineers ready to deploy within "
-            f"{b.time_to_deploy_min_days}–{b.time_to_deploy_max_days} days, "
-            f"with {b.overlap_hours_min}–{b.overlap_hours_max} hours of daily time-zone overlap. "
-            f"Engineers average {b.tenure_months} months tenure — named, stable, not rotated.\n\n"
-            "Happy to tailor the conversation around whatever is most useful to you.\n\n"
+            "Thanks for checking in.\n\n"
+            f"{signal_note}\n\n"
+            "The useful next step is still to confirm which constraint is most pressing for "
+            "your team right now: recruiting velocity, a specific AI or data capability gap, "
+            "or cost structure.\n\n"
+            f"Which of those is closest to where you are today?{case_note}\n\n"
+            "If none of those is active, I can close the loop here.\n\n"
+            "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+        )
+
+    def _public_signal_note(self, snapshot: ProspectEnrichmentResponse) -> str:
+        signals = sorted(
+            snapshot.hiring_signal_brief.signals,
+            key=lambda signal: signal.confidence,
+            reverse=True,
+        )
+        if signals and signals[0].confidence >= 0.5:
+            return f"The strongest public signal I have is still this: {signals[0].summary}"
+        return (
+            "I do not have a stronger public signal than the one in the original note, "
+            "so I would keep the conversation scoped as a research check rather than a claim."
+        )
+
+    def _differentiation_reply(self, snapshot: ProspectEnrichmentResponse) -> tuple[str, str]:
+        """Answer differentiation questions without generic capacity overclaims."""
+        name = snapshot.prospect.contact_name or "there"
+        b = seed_materials.baseline
+        signal_note = self._public_signal_note(snapshot)
+        return (
+            "Tenacious Intelligence — Difference",
+            f"Hi {name},\n\n"
+            "The short answer: Tenacious is built for managed delivery, not resume forwarding.\n\n"
+            "The practical differences are named engineers, direct access to the people doing "
+            "the work, a dedicated project manager for coordination, and a delivery model that "
+            f"plans around {b.overlap_hours_min}–{b.overlap_hours_max} hours of daily time-zone overlap. "
+            f"Our average engineer tenure is {b.tenure_months} months, so the model is designed "
+            "around continuity rather than rotation.\n\n"
+            f"{signal_note}\n\n"
+            "The right test is whether your current constraint is delivery capacity, a specific "
+            "platform or data gap, or something else entirely. Which is closest?\n\n"
             "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
         )
 
@@ -463,6 +500,17 @@ class ChannelHandoffManager:
             )
 
         # ---- Curious / "tell me more" ----------------------------------------
+        elif any(token in body for token in _DIFFERENTIATION_TOKENS):
+            subject, fallback_body = self._differentiation_reply(snapshot)
+            reply = self._rewrite_email_draft(
+                snapshot=snapshot,
+                scenario="differentiation_reply",
+                fallback_subject=subject,
+                fallback_body=fallback_body,
+                extra_context={"inbound_message": message.body, "reply_class": "differentiation"},
+            )
+
+        # ---- Curious / "tell me more" ----------------------------------------
         elif any(token in body for token in _CURIOUS_TOKENS):
             subject, fallback_body = self._curious_reply(snapshot)
             reply = self._rewrite_email_draft(
@@ -495,6 +543,8 @@ class ChannelHandoffManager:
                     "pricing_guardrail": True,
                 },
             )
+            if "specific number depends on scope" not in reply.lower():
+                reply = f"Subject: {subject}\n\n{fallback_body}"
 
         # ---- Offshore concern (transcript-grounded) -------------------
         elif any(token in body for token in _OFFSHORE_CONCERN_TOKENS):
@@ -615,17 +665,18 @@ class ChannelHandoffManager:
                 },
             )
 
-        # ---- General follow-up (case study if approved, else generic) -
+        # ---- Update/check-in or general follow-up --------------------
         else:
             subject, fallback_body = self._general_followup_reply(snapshot)
             reply = self._rewrite_email_draft(
                 snapshot=snapshot,
-                scenario="general_followup",
+                scenario="update_reply" if any(token in body for token in _UPDATE_TOKENS) else "general_followup",
                 fallback_subject=subject,
                 fallback_body=fallback_body,
                 extra_context={
                     "inbound_message": message.body,
                     "current_state": self.current_state(snapshot.prospect.prospect_id),
+                    "reply_class": "update" if any(token in body for token in _UPDATE_TOKENS) else "general",
                 },
             )
 

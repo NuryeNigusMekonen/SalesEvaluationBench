@@ -2,6 +2,7 @@ import json
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
@@ -121,23 +122,71 @@ class EmailChannel:
             }
         )
         if not review["allow"]:
+            judge = review.get("judge") or {}
+            verdict = judge.get("verdict")
+            preview_label = (
+                "Needs human review"
+                if review.get("route_to_review") or verdict == "needs_human_review"
+                else "Blocked by Week 11 judge"
+            )
+            artifact_ref = self._write_artifact(
+                {
+                    "provider": settings.email_provider,
+                    "draft": True,
+                    "outbound_enabled": False,
+                    "comparison_mode": comparison_mode_enabled(),
+                    "comparison_dry_run": comparison_dry_run_enabled(),
+                    "recipient": recipient or settings.resend_from_email,
+                    "subject": subject,
+                    "body": body,
+                    "week11_status": preview_label,
+                    "judge_review": {
+                        "verdict": verdict,
+                        "reason": review["reason"],
+                    },
+                },
+                prospect_id,
+            )
             return ToolExecutionResult(
                 name="email",
                 mode=self.status().mode,
                 status="skipped",
-                message=f"Email blocked by Tenacious judge: {review['reason']}",
+                message=f"{preview_label}: {review['reason']}",
+                artifact_ref=artifact_ref,
             )
 
         payload = {
             "provider": settings.email_provider,
             "draft": True,
-            "outbound_enabled": settings.outbound_enabled,
+            "outbound_enabled": (
+                settings.outbound_enabled
+                and not (comparison_mode_enabled() and comparison_dry_run_enabled())
+            ),
+            "comparison_mode": comparison_mode_enabled(),
+            "comparison_dry_run": comparison_dry_run_enabled(),
+            "week11_status": (
+                "Would send"
+                if comparison_mode_enabled() and comparison_dry_run_enabled()
+                else "Allowed by Week 11 judge"
+            ),
+            "judge_review": {
+                "verdict": (review.get("judge") or {}).get("verdict"),
+                "reason": review.get("reason"),
+            },
             "recipient": recipient or settings.resend_from_email,
             "subject": subject,
             "body": body,
         }
         artifact_ref = self._write_artifact(payload, prospect_id)
         status = self.status()
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            return ToolExecutionResult(
+                name="email",
+                mode="mock",
+                status="previewed",
+                message=f"Would send email to {recipient or 'local sink'}; comparison dry-run is enabled.",
+                artifact_ref=artifact_ref,
+            )
         if recipient and status.configured:
             try:
                 if settings.email_provider.lower() == "resend":

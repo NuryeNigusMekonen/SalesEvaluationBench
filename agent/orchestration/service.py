@@ -18,7 +18,8 @@ from agent.enrichment.connectors import (
     layoffs_connector,
     leadership_connector,
 )
-from agent.evaluation.tenacious_judge_adapter import review_before_action
+from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
+from agent.evaluation.tenacious_judge_adapter import review_before_action, runtime_status
 from agent.evaluation.tau2 import tau2_adapter
 from agent.generation.service import generation_service
 from agent.observability.langfuse import langfuse_client
@@ -188,12 +189,17 @@ class Orchestrator:
             competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
         )
         self._handle_tool_result(email_result, snapshot.prospect.prospect_id, "initial_email_send", critical=True)
+        initial_email_event = "email_sent" if email_result.status != "skipped" else "initial_email_blocked"
         self.repository.record_interaction_event(
             snapshot.prospect.prospect_id,
-            "email_sent",
+            initial_email_event,
             channel="email",
             provider=settings.email_provider,
-            payload={"subject": subject, "result": email_result.message},
+            payload={
+                "subject": subject,
+                "result": email_result.message,
+                "status": email_result.status,
+            },
         )
 
         # SMS is gated by can_send_sms() which requires email_reply_received.
@@ -602,6 +608,26 @@ class Orchestrator:
                 "reason": review["reason"],
             }
 
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            self.trace_logger.log(
+                "calendar_confirmation_dry_run",
+                {
+                    "prospect_id": snapshot.prospect.prospect_id,
+                    "company_name": snapshot.prospect.company_name,
+                    **{k: str(v) for k, v in confirmation.items()},
+                },
+            )
+            return {
+                "ok": False,
+                "matched": True,
+                "prospect_id": snapshot.prospect.prospect_id,
+                "dry_run": True,
+                "reason": (
+                    "Comparison dry-run enabled; calendar confirmation previewed — "
+                    "no real calendar confirmation committed."
+                ),
+            }
+
         self.repository.record_interaction_event(
             snapshot.prospect.prospect_id,
             "booking_confirmed",
@@ -731,6 +757,7 @@ class Orchestrator:
             latest_flow=latest_flow,
             latest_interaction_events=latest_events,
             latest_artifacts=latest_artifacts,
+            tenacious_judge_runtime=runtime_status(),
         )
 
     def tool_statuses(self) -> list[ToolStatus]:

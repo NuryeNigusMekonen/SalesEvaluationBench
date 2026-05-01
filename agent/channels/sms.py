@@ -2,6 +2,7 @@ import json
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
@@ -64,17 +65,54 @@ class SmsChannel:
             }
         )
         if not review["allow"]:
+            judge = review.get("judge") or {}
+            verdict = judge.get("verdict")
+            preview_label = (
+                "Needs human review"
+                if review.get("route_to_review") or verdict == "needs_human_review"
+                else "Blocked by Week 11 judge"
+            )
+            artifact_ref = self._write_artifact(
+                {
+                    "provider": settings.sms_provider,
+                    "draft": True,
+                    "outbound_enabled": False,
+                    "comparison_mode": comparison_mode_enabled(),
+                    "comparison_dry_run": comparison_dry_run_enabled(),
+                    "phone_number": phone_number or "warm-lead-preview",
+                    "body": body,
+                    "warm_lead_gate_passed": allow_warm_lead,
+                    "booking_link": booking_link,
+                    "week11_status": preview_label,
+                    "judge_review": {
+                        "verdict": verdict,
+                        "reason": review["reason"],
+                    },
+                },
+                prospect_id,
+            )
             return ToolExecutionResult(
                 name="sms",
                 mode=self.status().mode,
                 status="skipped",
-                message=f"SMS blocked by Tenacious judge: {review['reason']}",
+                message=f"{preview_label}: {review['reason']}",
+                artifact_ref=artifact_ref,
             )
 
         payload = {
             "provider": settings.sms_provider,
             "draft": True,
-            "outbound_enabled": settings.outbound_enabled,
+            "outbound_enabled": (
+                settings.outbound_enabled
+                and not (comparison_mode_enabled() and comparison_dry_run_enabled())
+            ),
+            "comparison_mode": comparison_mode_enabled(),
+            "comparison_dry_run": comparison_dry_run_enabled(),
+            "week11_status": (
+                "Would send"
+                if comparison_mode_enabled() and comparison_dry_run_enabled()
+                else "Allowed by Week 11 judge"
+            ),
             "phone_number": phone_number or "warm-lead-preview",
             "body": body,
             "warm_lead_gate_passed": allow_warm_lead,
@@ -88,6 +126,14 @@ class SmsChannel:
                 mode=status.mode,
                 status="skipped",
                 message="SMS send blocked by warm-lead gate because no prior email reply is recorded.",
+                artifact_ref=artifact_ref,
+            )
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            return ToolExecutionResult(
+                name="sms",
+                mode="mock",
+                status="previewed",
+                message="Would send SMS; comparison dry-run is enabled.",
                 artifact_ref=artifact_ref,
             )
         if status.configured and phone_number:

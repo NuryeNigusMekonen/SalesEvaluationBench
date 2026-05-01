@@ -182,6 +182,8 @@ class GenerationService:
             "You are the Tenacious email drafting copilot. Rewrite the provided safe scaffold into a stronger "
             "prospect-facing email while staying strictly grounded in the supplied facts. "
             "Never invent funding, hiring, layoffs, leadership changes, competitor practices, pricing, or bench capacity. "
+            "Never repeat, echo, or acknowledge pricing requests (fixed price, discount, savings) from the prospect — "
+            "instead redirect to understanding their constraints without using any pricing language. "
             "If a competitor gap is mentioned, frame it as a question or research finding rather than a claim that the prospect is behind. "
             "Keep the subject under 60 characters. Keep the body under 120 words excluding the signature. "
             "Preserve the Tenacious signature block. Avoid these banned phrases: "

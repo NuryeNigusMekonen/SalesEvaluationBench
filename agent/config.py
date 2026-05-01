@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 @dataclass(frozen=True)
@@ -130,6 +130,19 @@ class Settings:
         "Qwen/Qwen2.5-3B-Instruct",
     )
     tenacious_judge_max_new_tokens: int = int(os.getenv("TENACIOUS_JUDGE_MAX_NEW_TOKENS", "256"))
+    tenacious_comparison_mode: bool = os.getenv("TENACIOUS_COMPARISON_MODE", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    tenacious_comparison_dry_run: bool = os.getenv(
+        "TENACIOUS_COMPARISON_DRY_RUN",
+        "true",
+    ).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
 
 
 settings = Settings()

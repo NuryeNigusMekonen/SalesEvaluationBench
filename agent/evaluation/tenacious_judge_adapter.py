@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +18,7 @@ DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-3B-Instruct"
 DEFAULT_MAX_NEW_TOKENS = 256
 REVIEW_LOG_PATH = PROJECT_ROOT / "agent" / "data" / "judge_reviews.jsonl"
 FALLBACK_REASON = "Local judge adapter unavailable or invalid output, routed to human review."
+REQUIRED_ML_DEPS = ("torch", "transformers", "peft", "unsloth")
 
 _ALLOWED_VERDICTS = {"pass", "fail", "needs_human_review"}
 _MODEL_BUNDLE: "_JudgeModelBundle | None" = None
@@ -29,6 +34,13 @@ class _JudgeModelBundle:
 
 def _env_true(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_true_default(name: str, *, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _configured_adapter_path(adapter_path: str | None = None) -> Path:
@@ -47,6 +59,78 @@ def _configured_max_new_tokens() -> int:
         return max(1, int(raw))
     except ValueError:
         return DEFAULT_MAX_NEW_TOKENS
+
+
+def _dependency_available(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _last_judge_error() -> str | None:
+    if not REVIEW_LOG_PATH.exists():
+        return None
+    try:
+        lines = REVIEW_LOG_PATH.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return "Could not read judge review log."
+    for line in reversed(lines):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if record.get("mode") != "fallback":
+            continue
+        reason = str(record.get("reason") or FALLBACK_REASON).strip()
+        timestamp = record.get("timestamp_utc")
+        return f"{timestamp}: {reason}" if timestamp else reason
+    return None
+
+
+def runtime_status() -> dict:
+    adapter_path = _configured_adapter_path()
+    deps = {name: _dependency_available(name) for name in REQUIRED_ML_DEPS}
+    judge_enabled = _env_true("TENACIOUS_JUDGE_ENABLED")
+    outbound_is_live = os.getenv("OUTBOUND_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    adapter_exists = adapter_path.exists()
+    openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
+    openrouter_model = os.getenv("OPENROUTER_MODEL", "")
+    openrouter_available = bool(openrouter_key and openrouter_model)
+    if judge_enabled and adapter_exists and all(deps.values()):
+        runtime_mode = "real_model"
+    elif judge_enabled and openrouter_available:
+        runtime_mode = "openrouter_fallback"
+    else:
+        runtime_mode = "fallback"
+
+    judge_disabled_warning: str | None = None
+    if outbound_is_live and not judge_enabled:
+        judge_disabled_warning = (
+            "Outbound is enabled while Week 11 judge is disabled. "
+            "Actions may bypass the trained guardrail."
+        )
+        logger.warning(judge_disabled_warning)
+
+    return {
+        "tenacious_judge_enabled": judge_enabled,
+        "tenacious_comparison_mode": _env_true("TENACIOUS_COMPARISON_MODE"),
+        "tenacious_comparison_dry_run": _env_true_default(
+            "TENACIOUS_COMPARISON_DRY_RUN",
+            default=True,
+        ),
+        "adapter_path": str(adapter_path),
+        "adapter_path_exists": adapter_exists,
+        "required_ml_deps_available": deps,
+        "runtime_mode": runtime_mode,
+        "openrouter_fallback_available": openrouter_available,
+        "last_judge_error": _last_judge_error(),
+        "outbound_is_live": outbound_is_live,
+        "judge_disabled_with_live_outbound_warning": judge_disabled_warning is not None,
+        "judge_disabled_warning": judge_disabled_warning,
+    }
 
 
 def _fallback(raw_output: str = "", model_path: str | None = None) -> dict:
@@ -147,6 +231,21 @@ def _rubric_summary() -> str:
     )
 
 
+def _load_bench_facts() -> dict:
+    try:
+        from agent.seed.loader import seed_materials
+        b = seed_materials.baseline
+        return {
+            "bench_ready": b.bench_ready,
+            "time_to_deploy_days": f"{b.time_to_deploy_min_days}–{b.time_to_deploy_max_days}",
+            "overlap_hours": f"{b.overlap_hours_min}–{b.overlap_hours_max}",
+            "tenure_months": b.tenure_months,
+            "note": "These are verified Tenacious bench facts from bench_summary.json. Claims that match these values are grounded and must not be failed.",
+        }
+    except Exception:
+        return {}
+
+
 def _build_prompt(
     *,
     prospect_context: dict,
@@ -162,6 +261,7 @@ def _build_prompt(
         "competitor_gap_brief": competitor_gap_brief,
         "action_type": action_type,
         "candidate_sales_agent_output": agent_output,
+        "tenacious_verified_bench_facts": _load_bench_facts(),
     }
     instruction = judge_instruction or (
         "Review the candidate sales-agent output before it is sent, logged as final, "
@@ -279,6 +379,88 @@ def _generate_judge_output(prompt: str, *, adapter_path: Path, base_model: str) 
     return tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
 
 
+def _build_compact_judge_prompt(agent_output: str, action_type: str | None) -> str:
+    """Compact prompt for OpenRouter fallback — avoids timeouts on long payloads."""
+    bench = _load_bench_facts()
+    bench_note = (
+        f"Verified Tenacious bench facts (PASS if cited): {bench.get('bench_ready')} engineers, "
+        f"{bench.get('time_to_deploy_days')} day deployment, "
+        f"{bench.get('overlap_hours')}h daily overlap, "
+        f"{bench.get('tenure_months')} month average tenure.\n"
+    ) if bench else ""
+    return (
+        "You are a sales-email guardrail. Return JSON only.\n\n"
+        "Rules — fail if the output contains: unsupported fixed pricing, guaranteed discounts, "
+        "guaranteed savings percentages vs unnamed vendors, invented funding/hiring/layoff data, "
+        "or SMS/calendar escalation without consent.\n"
+        f"{bench_note}"
+        "Pass if the output asks a question, uses hedged language, or cites only verifiable facts "
+        "including the verified bench facts above.\n"
+        "Use needs_human_review only when genuinely ambiguous.\n\n"
+        f"action_type: {action_type or 'email'}\n"
+        f"candidate_output: {agent_output[:600]}\n\n"
+        'Return: {"verdict":"pass"|"fail"|"needs_human_review","reason":"<short reason>","confidence":0.0}'
+    )
+
+
+def _judge_via_openrouter(prompt: str, *, compact_prompt: str | None = None) -> dict:
+    """OpenRouter fallback judge used when the local LoRA adapter is unavailable."""
+    from urllib.error import HTTPError
+
+    from agent.config import settings
+    from agent.utils.http import request_json
+
+    judge_model = (
+        os.getenv("TENACIOUS_JUDGE_OPENROUTER_MODEL", "").strip()
+        or settings.openrouter_model
+    )
+    if not settings.openrouter_api_key or not judge_model:
+        return _fallback(raw_output="OpenRouter not configured")
+
+    judge_prompt = compact_prompt or prompt
+    try:
+        _, response, _ = request_json(
+            "POST",
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.openrouter_api_key}",
+                "HTTP-Referer": settings.app_base_url,
+                "X-Title": "The Conversion Engine",
+            },
+            payload={
+                "model": judge_model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a strict sales-email guardrail. Return valid JSON only.",
+                    },
+                    {"role": "user", "content": judge_prompt},
+                ],
+                "temperature": 0.0,
+                "max_tokens": 128,
+            },
+            timeout=25,
+        )
+    except HTTPError as exc:
+        return _fallback(raw_output=f"OpenRouter HTTP error: {exc}")
+    except Exception as exc:
+        return _fallback(raw_output=f"OpenRouter error: {exc}")
+
+    choices = response.get("choices") or []
+    if not choices:
+        return _fallback(raw_output="OpenRouter returned no choices")
+    content = (choices[0].get("message") or {}).get("content") or ""
+    if isinstance(content, list):
+        content = "".join(
+            item.get("text", "") for item in content if isinstance(item, dict)
+        ).strip()
+    result = _parse_judge_json(str(content).strip(), model_path="openrouter")
+    if result.get("mode") != "fallback":
+        result = dict(result)
+        result["model_path"] = f"openrouter/{judge_model}"
+    return result
+
+
 def judge_candidate(
     prospect_context: dict,
     hiring_signal_brief: dict,
@@ -305,6 +487,13 @@ def judge_candidate(
             base_model=_configured_base_model(),
         )
     except Exception as exc:
+        logger.info(
+            "Local judge model unavailable (%s); using OpenRouter fallback.", exc
+        )
+        compact = _build_compact_judge_prompt(agent_output, action_type)
+        or_result = _judge_via_openrouter(prompt, compact_prompt=compact)
+        if or_result.get("mode") != "fallback":
+            return or_result
         return _fallback(raw_output=str(exc), model_path=model_path)
     return _parse_judge_json(raw_output, model_path=model_path)
 
@@ -384,6 +573,8 @@ def review_before_action(
             "judge": judge,
             "reason": judge.get("reason") or "judge failed",
         }
+    # needs_human_review: judge is uncertain or model unavailable.
+    # Do not commit customer-facing or CRM/calendar actions automatically.
     return {
         "allow": False,
         "route_to_review": True,

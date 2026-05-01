@@ -119,6 +119,51 @@ def test_email_falls_back_to_preview_when_provider_rejects_sender(monkeypatch) -
     assert "verified domain" in result.message
 
 
+def test_email_needs_human_review_does_not_send_live(monkeypatch, tmp_path) -> None:
+    channel = EmailChannel()
+    monkeypatch.setattr(
+        "agent.channels.email.settings",
+        SimpleNamespace(
+            outbox_dir=tmp_path,
+            outbound_enabled=True,
+            email_provider="resend",
+            resend_api_key="live-key",
+            resend_from_email="sender@tenacious.com",
+            resend_reply_to="",
+            mailersend_api_key="",
+            mailersend_from_email="sender@tenacious.com",
+            mailersend_from_name="Tenacious",
+        ),
+    )
+    monkeypatch.setattr(
+        "agent.channels.email.review_before_action",
+        lambda candidate: {
+            "allow": False,
+            "route_to_review": True,
+            "judge": {"verdict": "needs_human_review"},
+            "reason": "Local judge adapter unavailable or invalid output, routed to human review.",
+        },
+    )
+
+    def fail_transport(*args, **kwargs):  # pragma: no cover - must not be called
+        raise AssertionError("Email transport should not run for needs_human_review")
+
+    monkeypatch.setattr("agent.channels.email.request_json", fail_transport)
+
+    result = channel.send(
+        recipient="amara@clearmint.io",
+        subject="Initial outreach",
+        body="Draft body",
+        prospect_id="pros_ch_email_guard_001",
+    )
+
+    assert result.status == "skipped"
+    assert "Needs human review" in result.message
+    payload = json.loads((tmp_path / "pros_ch_email_guard_001_email.json").read_text())
+    assert payload["outbound_enabled"] is False
+    assert payload["judge_review"]["verdict"] == "needs_human_review"
+
+
 # ---------------------------------------------------------------------------
 # SMS channel — warm-lead coordination only
 # ---------------------------------------------------------------------------
@@ -372,6 +417,7 @@ def test_hubspot_enrichment_write_skips_unknown_custom_properties(monkeypatch) -
         "agent.crm.hubspot.settings",
         SimpleNamespace(
             outbox_dir=settings.outbox_dir,
+            outbound_enabled=True,
             hubspot_access_token="token",
             hubspot_base_url="https://api.hubapi.com",
         ),
@@ -394,6 +440,7 @@ def test_hubspot_activity_note_includes_required_timestamp(monkeypatch) -> None:
         "agent.crm.hubspot.settings",
         SimpleNamespace(
             outbox_dir=settings.outbox_dir,
+            outbound_enabled=True,
             hubspot_access_token="token",
             hubspot_base_url="https://api.hubapi.com",
         ),
@@ -489,3 +536,117 @@ def test_calcom_status_reports_mode() -> None:
     assert status.name == "calcom"
     assert status.mode in ("mock", "configured")
     assert status.available is True
+
+
+# ---------------------------------------------------------------------------
+# Gap 2: OUTBOUND_ENABLED enforcement in HubSpot
+# ---------------------------------------------------------------------------
+
+def test_hubspot_write_blocked_when_outbound_disabled(monkeypatch, tmp_path) -> None:
+    """HubSpot live API must not fire when OUTBOUND_ENABLED=false even with a valid token."""
+    client = HubSpotClient()
+
+    def fail_transport(*args, **kwargs):  # pragma: no cover - must not be called
+        raise AssertionError("HubSpot API should not be reached when OUTBOUND_ENABLED=false")
+
+    monkeypatch.setattr(
+        "agent.crm.hubspot.settings",
+        SimpleNamespace(
+            outbox_dir=tmp_path,
+            outbound_enabled=False,
+            hubspot_access_token="live-token",
+            hubspot_base_url="https://api.hubapi.com",
+        ),
+    )
+    monkeypatch.setattr("agent.crm.hubspot.request_json", fail_transport)
+
+    result = client.sync_contact_profile(
+        {"email": "test@example.com", "company_name": "BlockedCo"},
+        "pros_outbound_hs_001",
+    )
+
+    assert result.status == "previewed"
+    assert result.mode == "mock"
+
+
+def test_hubspot_outbound_enabled_allows_live_write_when_judge_passes(monkeypatch, tmp_path) -> None:
+    """With OUTBOUND_ENABLED=true, token set, and judge disabled (allow), live write proceeds."""
+    client = HubSpotClient()
+
+    captured: dict = {}
+
+    def fake_request_json(method, url, *, headers=None, payload=None, timeout=20):
+        captured["method"] = method
+        captured["url"] = url
+        if "search" in url:
+            return 200, {"results": []}, {}
+        return 201, {"id": "contact-live-001"}, {}
+
+    monkeypatch.setattr(
+        "agent.crm.hubspot.settings",
+        SimpleNamespace(
+            outbox_dir=tmp_path,
+            outbound_enabled=True,
+            hubspot_access_token="live-token",
+            hubspot_base_url="https://api.hubapi.com",
+        ),
+    )
+    monkeypatch.setattr("agent.crm.hubspot.request_json", fake_request_json)
+    monkeypatch.delenv("TENACIOUS_JUDGE_ENABLED", raising=False)
+    monkeypatch.delenv("TENACIOUS_COMPARISON_MODE", raising=False)
+    monkeypatch.delenv("TENACIOUS_COMPARISON_DRY_RUN", raising=False)
+
+    result = client.sync_contact_profile(
+        {"email": "live@example.com", "company_name": "LiveCo"},
+        "pros_outbound_hs_002",
+    )
+
+    assert result.status == "executed"
+    assert result.external_id == "contact-live-001"
+    assert captured.get("method") in {"POST", "PATCH"}
+
+
+# ---------------------------------------------------------------------------
+# Gap 1: Calendar confirmation dry-run gate
+# ---------------------------------------------------------------------------
+
+def test_calendar_confirmation_dry_run_prevents_booking(monkeypatch) -> None:
+    """In dry-run mode, handle_calendar_confirmation returns a preview and does not mark the prospect as booked."""
+    from agent.orchestration.service import orchestrator
+    from agent.schemas.prospect import LeadIntakeRequest
+
+    monkeypatch.delenv("TENACIOUS_JUDGE_ENABLED", raising=False)
+    monkeypatch.delenv("TENACIOUS_COMPARISON_MODE", raising=False)
+    monkeypatch.delenv("TENACIOUS_COMPARISON_DRY_RUN", raising=False)
+
+    snapshot = orchestrator.run_toolchain(
+        LeadIntakeRequest(
+            company_name="DryRunCal Corp",
+            company_domain="dryruncal.ai",
+            contact_name="Amara DryRun",
+            contact_email="amara.dryruncal@example.com",
+            contact_phone="+254700999099",
+        )
+    )
+
+    # Enable dry-run only for the confirmation step.
+    monkeypatch.setenv("TENACIOUS_COMPARISON_MODE", "true")
+    monkeypatch.setenv("TENACIOUS_COMPARISON_DRY_RUN", "true")
+
+    result = orchestrator.handle_calendar_confirmation(
+        {
+            "contact_email": "amara.dryruncal@example.com",
+            "booking_external_id": "uid_dryruncal_test_001",
+            "booking_status": "confirmed",
+            "company_name": "DryRunCal Corp",
+        }
+    )
+
+    assert result["ok"] is False
+    assert result.get("dry_run") is True
+    assert "dry-run" in result["reason"].lower()
+    assert result["matched"] is True
+
+    refreshed = orchestrator.repository.get_snapshot(snapshot.prospect.prospect_id)
+    assert refreshed is not None
+    assert refreshed.prospect.status != "booked"

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 from agent.utils.http import request_json
@@ -13,7 +14,7 @@ class HubSpotMCPClient:
         self._contact_property_names: set[str] | None = None
 
     def status(self) -> ToolStatus:
-        configured = bool(settings.hubspot_access_token)
+        configured = bool(settings.outbound_enabled and settings.hubspot_access_token)
         return ToolStatus(
             name="hubspot",
             label="HubSpot MCP CRM",
@@ -22,7 +23,8 @@ class HubSpotMCPClient:
             available=True,
             details=(
                 "HubSpot MCP integration covers contact upsert, enrichment field writes, "
-                "and activity logging. Local artifacts are written unless a HubSpot token is configured."
+                "and activity logging. Local artifacts are written unless OUTBOUND_ENABLED=true "
+                "and a HubSpot access token is configured."
             ),
         )
 
@@ -53,11 +55,16 @@ class HubSpotMCPClient:
         )
         if review["allow"]:
             return None
+        preview_label = (
+            "Needs human review"
+            if review.get("route_to_review") or (review.get("judge") or {}).get("verdict") == "needs_human_review"
+            else "Blocked by Week 11 judge"
+        )
         return ToolExecutionResult(
             name="hubspot",
             mode=self.status().mode,
             status="skipped",
-            message=f"HubSpot action blocked by Tenacious judge: {review['reason']}",
+            message=f"{preview_label}: {review['reason']}",
         )
 
     def _contact_properties(self, payload: dict) -> dict[str, object]:
@@ -248,6 +255,14 @@ class HubSpotMCPClient:
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
         email = payload.get("email")
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            return ToolExecutionResult(
+                name="hubspot",
+                mode="mock",
+                status="previewed",
+                message="Would commit HubSpot contact profile update; comparison dry-run is enabled.",
+                artifact_ref=artifact_ref,
+            )
         if status.configured and email:
             try:
                 contact_id = self._find_contact(str(email))
@@ -341,6 +356,15 @@ class HubSpotMCPClient:
             return blocked
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            return ToolExecutionResult(
+                name="hubspot",
+                mode="mock",
+                status="previewed",
+                message="Would commit HubSpot enrichment fields; comparison dry-run is enabled.",
+                artifact_ref=artifact_ref,
+                external_id=contact_id,
+            )
         if status.configured and contact_id:
             try:
                 supported_fields, unsupported_fields = self._supported_enrichment_properties(enrichment_fields)
@@ -446,6 +470,15 @@ class HubSpotMCPClient:
             return blocked
         artifact_ref = self._write_artifact(artifact_payload, prospect_id)
         status = self.status()
+        if comparison_mode_enabled() and comparison_dry_run_enabled():
+            return ToolExecutionResult(
+                name="hubspot",
+                mode="mock",
+                status="previewed",
+                message="Would log HubSpot activity; comparison dry-run is enabled.",
+                artifact_ref=artifact_ref,
+                external_id=contact_id,
+            )
         if status.configured and contact_id:
             try:
                 request_json(

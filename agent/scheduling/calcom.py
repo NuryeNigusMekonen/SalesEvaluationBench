@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 from agent.config import settings
+from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 
@@ -114,11 +115,17 @@ class CalComClient:
             source_channel="calendar",
         )
         status = self.status()
+        comparison_dry_run = comparison_mode_enabled() and comparison_dry_run_enabled()
         return ToolExecutionResult(
             name="calcom",
-            mode=status.mode,
+            mode="mock" if comparison_dry_run else status.mode,
             status="previewed",
             message=(
+                "Would generate scheduling preview; comparison dry-run is enabled. "
+                if comparison_dry_run
+                else ""
+            )
+            + (
                 f"Scheduling preview generated. Booking link: {booking_link}. "
                 "Real bookings are created only from Cal.com webhook confirmation."
             ),
