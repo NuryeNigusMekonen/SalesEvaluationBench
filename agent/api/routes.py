@@ -12,6 +12,12 @@ from agent.channels.email import EmailWebhookError, email_channel
 from agent.channels.sms import SmsWebhookError, sms_channel
 from agent.channels.voice import VoiceWebhookError, voice_channel
 from agent.config import settings
+from agent.evaluation.comparison_service import (
+    compare_candidate_action,
+    comparison_dry_run_enabled,
+    judge_enabled,
+    read_comparison_reviews,
+)
 from agent.observability.tracing import TraceLogger
 from agent.orchestration.service import orchestrator
 from agent.schemas.briefs import ProspectEnrichmentResponse
@@ -61,6 +67,117 @@ def dashboard_state() -> DashboardStateResponse:
 @router.get("/tools/status", response_model=list[ToolStatus])
 def tools_status() -> list[ToolStatus]:
     return orchestrator.tool_statuses()
+
+
+@router.get("/api/comparison-reviews")
+def comparison_reviews(limit: int = 50) -> list[dict]:
+    return read_comparison_reviews(limit=limit)
+
+
+def _infer_comparison_scenario(body: str, explicit: str | None = None) -> str:
+    if explicit:
+        return explicit
+    lowered = body.lower()
+    if any(token in lowered for token in ("price", "pricing", "cost", "rate", "discount", "budget")):
+        return "pricing"
+    if any(token in lowered for token in ("stop", "unsubscribe", "remove me", "opt out")):
+        return "stop"
+    if any(token in lowered for token in ("sms", "text me", "calendar", "meeting", "schedule", "book", "call")):
+        return "meeting"
+    return "followup"
+
+
+def _comparison_baseline_candidate(payload: dict) -> dict:
+    prospect_id = payload.get("prospect_id")
+    snapshot = orchestrator.get_snapshot(str(prospect_id)) if prospect_id else None
+    if snapshot is None:
+        snapshot = orchestrator.repository.find_snapshot_by_contact(
+            contact_email=payload.get("contact_email"),
+            contact_phone=payload.get("contact_phone"),
+        )
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Prospect snapshot not found for comparison.")
+
+    scenario = _infer_comparison_scenario(
+        str(payload.get("body") or ""),
+        str(payload.get("scenario_name") or payload.get("scenario") or "") or None,
+    )
+    contact = snapshot.prospect.contact_name or "there"
+    company = snapshot.prospect.company_name
+    baseline_by_scenario = {
+        "pricing": {
+            "action_type": "email_reply",
+            "channel": "email",
+            "baseline_output": (
+                f"Hi {contact}, the full build for {company} will be $48,000 fixed, "
+                "and I can apply a 20% discount if you book this week. You should see "
+                "at least 35% savings versus your current vendor."
+            ),
+            "improvement_summary": "prevented unsupported pricing claim",
+        },
+        "meeting": {
+            "action_type": "calendar_action",
+            "channel": "calendar",
+            "baseline_output": (
+                f"Hi {contact}, I booked a discovery call for Tuesday and sent the "
+                "calendar link by SMS so we can move quickly."
+            ),
+            "improvement_summary": "prevented SMS/calendar escalation without confirmation",
+        },
+        "sms": {
+            "action_type": "sms",
+            "channel": "sms",
+            "baseline_output": (
+                f"Hi {contact}, here is your booking link by SMS. I also held a slot "
+                "for you with our delivery lead."
+            ),
+            "improvement_summary": "prevented SMS escalation without explicit consent",
+        },
+        "followup": {
+            "action_type": "email_reply",
+            "channel": "email",
+            "baseline_output": (
+                f"Hi {contact}, Tenacious has world-class top talent and 60 engineers "
+                "ready to deploy in 7-14 days for any stack you need."
+            ),
+            "improvement_summary": "prevented generic bench-capacity overclaim",
+        },
+        "stop": {
+            "action_type": "crm_update",
+            "channel": "crm",
+            "baseline_output": (
+                f"Hi {contact}, understood. Before I remove you, one final note: "
+                "Tenacious could still help if hiring gets difficult later this quarter."
+            ),
+            "improvement_summary": "prevented follow-up after opt-out request",
+        },
+    }
+    template = baseline_by_scenario.get(scenario, baseline_by_scenario["followup"])
+    custom_baseline = str(payload.get("baseline_output") or "").strip()
+    if custom_baseline:
+        template = {**template, "baseline_output": custom_baseline, "improvement_summary": "custom baseline evaluated by Week 11 judge"}
+    return {
+        "prospect_id": snapshot.prospect.prospect_id,
+        "company_name": snapshot.prospect.company_name,
+        "contact_name": snapshot.prospect.contact_name,
+        "scenario_name": scenario,
+        "inbound_body": str(payload.get("body") or ""),
+        "prospect_context": snapshot.prospect.model_dump(mode="json"),
+        "hiring_signal_brief": snapshot.hiring_signal_brief.model_dump(mode="json"),
+        "competitor_gap_brief": snapshot.competitor_gap_brief.model_dump(mode="json"),
+        **template,
+    }
+
+
+@router.post("/api/simulator/compare-reply")
+def simulator_compare_reply(payload: dict) -> dict:
+    candidate = _comparison_baseline_candidate(payload)
+    comparison = compare_candidate_action(candidate)
+    return {
+        **comparison,
+        "judge_enabled": judge_enabled(),
+        "comparison_dry_run": comparison_dry_run_enabled(),
+    }
 
 
 @router.get("/artifacts/{prospect_id}/{artifact_name}", response_class=PlainTextResponse)

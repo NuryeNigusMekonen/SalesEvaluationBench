@@ -40,6 +40,20 @@ class DashboardFlowSummary(BaseModel):
     crm_logged: bool = False
 
 
+class TenaciousJudgeRuntimeStatus(BaseModel):
+    tenacious_judge_enabled: bool = False
+    tenacious_comparison_mode: bool = False
+    tenacious_comparison_dry_run: bool = True
+    adapter_path: str = ""
+    adapter_path_exists: bool = False
+    required_ml_deps_available: dict[str, bool] = Field(default_factory=dict)
+    runtime_mode: str = "fallback"
+    last_judge_error: str | None = None
+    outbound_is_live: bool = False
+    judge_disabled_with_live_outbound_warning: bool = False
+    judge_disabled_warning: str | None = None
+
+
 class DashboardStateResponse(BaseModel):
     total_prospects: int = 0
     total_traces: int = 0
@@ -49,3 +63,6 @@ class DashboardStateResponse(BaseModel):
     latest_flow: DashboardFlowSummary | None = None
     latest_interaction_events: list[DashboardInteractionEvent] = Field(default_factory=list)
     latest_artifacts: list[DashboardArtifact] = Field(default_factory=list)
+    tenacious_judge_runtime: TenaciousJudgeRuntimeStatus = Field(
+        default_factory=TenaciousJudgeRuntimeStatus
+    )

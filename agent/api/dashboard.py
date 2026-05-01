@@ -641,24 +641,6 @@ DASHBOARD_HTML = """
     .sim-co.selected { border-color:var(--blue); background:var(--blue-soft); }
     .sim-co-name { font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sim-co-meta { font-size:10.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sim-scenarios { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
-    .sim-btn {
-      padding: 10px 8px;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      cursor: pointer;
-      text-align: center;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: var(--ink-mid);
-      transition: all .15s;
-      line-height: 1.3;
-    }
-    .sim-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
-    .sim-btn.active { border-color: var(--blue); background: var(--blue); color: #fff; }
-    .sim-btn-icon { font-size: 16px; display: block; margin-bottom: 4px; }
-    .sim-btn.danger:hover, .sim-btn.danger.active { border-color: var(--red); background: var(--red-soft); color: var(--red); }
     .sim-thread {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -692,6 +674,22 @@ DASHBOARD_HTML = """
     .sim-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
     .sim-empty { padding: 32px; text-align: center; color: var(--muted); font-size: 12.5px; }
     .sim-status { font-size: 12px; color: var(--muted); min-height: 20px; margin-top: 6px; }
+    .judge-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 10px; border: 1px solid var(--line);
+      border-radius: 7px; background: var(--surface-soft);
+      font-size: 12px; font-weight: 650; color: var(--ink-mid);
+    }
+    .judge-toggle input { width: 16px; height: 16px; accent-color: var(--blue); }
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 9px; }
+    .comparison-panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px; }
+    .comparison-panel.blocked { background: var(--gray-soft); color: var(--muted); }
+    .comparison-title { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+    .comparison-body { font-size: 12px; white-space: pre-wrap; color: var(--ink); line-height: 1.45; }
+    .comparison-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
+    .judge-pass { color: var(--green); background: var(--green-soft); }
+    .judge-fail { color: var(--red); background: var(--red-soft); }
+    .judge-review { color: var(--amber); background: var(--amber-soft); }
 
     /* ── RESPONSIVE ────────────────────────── */
     @media (max-width: 1280px) {
@@ -713,6 +711,7 @@ DASHBOARD_HTML = """
       .tool-grid { grid-template-columns: 1fr; }
       .fact-grid { grid-template-columns: repeat(2, 1fr); }
       .cfg-grid { grid-template-columns: 1fr; }
+      .comparison-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       .workspace { padding: 14px; }
@@ -1162,6 +1161,10 @@ DASHBOARD_HTML = """
           </div>
         </div>
       </div>
+      <div class="card mt">
+        <div class="card-hd"><div class="card-title"><span class="card-icon">W11</span>Week 10 vs Week 11 Comparison Reviews</div></div>
+        <div class="card-body"><div id="comparison-review-list"><div class="empty">No comparison reviews yet.</div></div></div>
+      </div>
     </section><!-- /traces -->
 
 
@@ -1193,6 +1196,13 @@ DASHBOARD_HTML = """
             <div class="kvr"><span class="kk">API Health</span><span class="kv-val" id="settings-health">—</span></div>
             <div class="kvr"><span class="kk">Seed Materials</span><span class="badge s-ok">Loaded</span></div>
           </div>
+        </div>
+      </div>
+
+      <div class="card card-pad mb">
+        <div class="card-title" style="margin-bottom:9px"><span class="card-icon">W11</span>Week 11 Judge Runtime</div>
+        <div class="kv" id="settings-judge-runtime">
+          <div class="kvr"><span class="kk">Runtime Mode</span><span class="kv-val">Loading…</span></div>
         </div>
       </div>
 
@@ -1276,38 +1286,17 @@ DASHBOARD_HTML = """
               <span class="badge s-nil" id="sim-channel-badge">Waiting for prospect</span>
             </div>
             <div class="card-body">
-              <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Click a scenario to load the recommended message, edit it if needed, then send.</p>
-              <div class="sim-scenarios">
-                <button class="sim-btn" id="sbtn-pricing" onclick="simSelect('pricing')" disabled>
-                  <span class="sim-btn-icon">&#128176;</span>Pricing<br>Question
-                </button>
-                <button class="sim-btn" id="sbtn-meeting" onclick="simSelect('meeting')" disabled>
-                  <span class="sim-btn-icon">&#128197;</span>Meeting<br>Request
-                </button>
-                <button class="sim-btn" id="sbtn-followup" onclick="simSelect('followup')" disabled>
-                  <span class="sim-btn-icon">&#128172;</span>General<br>Follow-up
-                </button>
-                <button class="sim-btn" id="sbtn-sms" onclick="simSelect('sms')" disabled>
-                  <span class="sim-btn-icon">&#128241;</span>Ask to<br>Text Me
-                </button>
-                <button class="sim-btn danger" id="sbtn-stop" onclick="simSelect('stop')" disabled>
-                  <span class="sim-btn-icon">&#128683;</span>Stop /<br>Unsubscribe
-                </button>
-              </div>
-
-              <!-- Editable message composer — shown after a scenario is selected -->
-              <div id="sim-composer" style="display:none;margin-top:12px">
+              <!-- Message composer — visible once prospect is created -->
+              <div id="sim-composer" style="display:none">
                 <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">
-                  Prospect message — <span id="sim-scenario-label" style="color:var(--blue)"></span>
-                  <span style="font-weight:400;color:var(--muted);margin-left:6px">Edit before sending</span>
+                  Prospect message
                 </div>
                 <textarea id="sim-body-input"
                   rows="3"
                   style="width:100%;padding:9px 11px;border:1.5px solid var(--blue);border-radius:7px;font:13px/1.5 inherit;color:var(--ink);resize:vertical;outline:none"
-                  placeholder="Type or edit the prospect message…"></textarea>
+                  placeholder="Type your prospect message — real agent reply + Week 11 judge review will be shown…"></textarea>
                 <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-                  <button class="btn btn-primary" id="sim-send-btn" onclick="simSend()" style="flex-shrink:0">&#9654; Send Reply</button>
-                  <button class="btn" onclick="simClearComposer()" style="flex-shrink:0">&#10005; Cancel</button>
+                  <button class="btn btn-primary" id="sim-send-btn" onclick="simSend()" style="flex-shrink:0" disabled>&#9654; Send Reply</button>
                   <span class="sim-status" id="sim-reply-status" style="margin-top:0"></span>
                 </div>
               </div>
@@ -1333,7 +1322,7 @@ DASHBOARD_HTML = """
 
 <script>
 // ── DATA STORE ──────────────────────────────────────
-let _state = null, _snap = null, _allTraces = [], _allProspects = [];
+let _state = null, _snap = null, _allTraces = [], _allProspects = [], _comparisonReviews = [];
 
 // ── UTILITIES ───────────────────────────────────────
 const esc = v => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -1970,9 +1959,46 @@ function renderTracesPage() {
     .map(([k, n]) => `<span class="badge s-info">${esc(k)} <strong>${n}</strong></span>`).join("");
   renderTracesTable(_allTraces);
   renderTracesTimeline(_allTraces);
+  renderComparisonReviews();
   const lf = getArtifact("langfuse");
   const lfRow = document.getElementById("langfuse-link-row");
   if (lf?.route) { lfRow.style.display = "block"; document.getElementById("langfuse-link").href = lf.route; }
+}
+
+function verdictTone(verdict) {
+  const v = String(verdict || "").toLowerCase();
+  if (v === "pass") return "s-ok judge-pass";
+  if (v === "fail") return "s-err judge-fail";
+  if (v === "judge_disabled") return "s-nil";
+  return "s-warn judge-review";
+}
+
+function finalDecisionLabel(v) {
+  const d = String(v || "").toLowerCase();
+  if (d === "allow") return "ALLOW";
+  if (d === "block") return "BLOCK";
+  return "ROUTE TO HUMAN";
+}
+
+function renderComparisonReviews() {
+  const el = document.getElementById("comparison-review-list");
+  if (!el) return;
+  if (!_comparisonReviews.length) { el.innerHTML = emp("No comparison reviews yet."); return; }
+  el.innerHTML = _comparisonReviews.slice(0, 8).map(r => `
+    <div class="comparison-panel ${r.final_decision === "block" ? "blocked" : ""}" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <strong>${esc(r.company_name || r.prospect_id || "Comparison review")}</strong>
+        ${bdg(String(r.judge_verdict || "needs_human_review").toUpperCase().replace(/_/g, " "), verdictTone(r.judge_verdict))}
+      </div>
+      <div class="comparison-body" style="margin-top:5px">${esc(trunc(r.baseline_output || "", 180))}</div>
+      <div class="comparison-meta">
+        ${bdg(finalDecisionLabel(r.final_decision), r.final_decision === "allow" ? "s-ok" : r.final_decision === "block" ? "s-err" : "s-warn")}
+        ${bdg(titl(r.action_type), "s-nil")}
+        ${bdg(titl(r.channel), "s-nil")}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:5px">${esc(r.improvement_summary || r.judge_reason || "")}</div>
+    </div>
+  `).join("");
 }
 
 function renderTracesTable(rows) {
@@ -2014,10 +2040,38 @@ document.getElementById("traces-filter-type").addEventListener("change", e => {
 document.getElementById("traces-refresh").addEventListener("click", () => { loadState(); });
 
 // Settings page
+function yesNo(value) {
+  return value ? bdg("yes", "s-ok") : bdg("no", "s-warn");
+}
+
+function trueFalse(value) {
+  return value ? bdg("true", "s-ok") : bdg("false", "s-nil");
+}
+
+function renderJudgeRuntimePanel() {
+  const el = document.getElementById("settings-judge-runtime");
+  if (!el) return;
+  const rt = _state?.tenacious_judge_runtime || {};
+  const deps = rt.required_ml_deps_available || {};
+  const depOrder = ["torch", "transformers", "peft", "unsloth"];
+  const depBadges = depOrder.map(name => `${esc(name)} ${yesNo(Boolean(deps[name]))}`).join(" ");
+  const runtimeMode = rt.runtime_mode || "fallback";
+  el.innerHTML = `
+    ${kvr("TENACIOUS_JUDGE_ENABLED", trueFalse(Boolean(rt.tenacious_judge_enabled)))}
+    ${kvr("TENACIOUS_COMPARISON_MODE", trueFalse(Boolean(rt.tenacious_comparison_mode)))}
+    ${kvr("TENACIOUS_COMPARISON_DRY_RUN", trueFalse(Boolean(rt.tenacious_comparison_dry_run)))}
+    ${kvr("adapter path", esc(rt.adapter_path || "—"))}
+    ${kvr("adapter path exists", yesNo(Boolean(rt.adapter_path_exists)))}
+    ${kvr("required ML deps available", depBadges)}
+    ${kvr("runtime mode", bdg(runtimeMode, runtimeMode === "real_model" ? "s-ok" : "s-warn"))}
+    ${kvr("last judge error", esc(trunc(rt.last_judge_error || "None", 140, "None")))}`;
+}
+
 function renderSettingsPage() {
   document.getElementById("settings-mode").textContent = document.getElementById("kpi-mode")?.textContent || "Preview";
   document.getElementById("settings-health").textContent = document.getElementById("kpi-health")?.textContent || "—";
   document.getElementById("settings-bench").textContent = document.getElementById("kpi-bench")?.textContent || "—";
+  renderJudgeRuntimePanel();
   const tools = _state?.tool_statuses || [];
   const el = document.getElementById("settings-providers");
   if (!tools.length) { el.innerHTML = emp("No provider data."); return; }
@@ -2045,7 +2099,12 @@ async function checkHealth() {
 // ── LOAD STATE ───────────────────────────────────────
 async function loadState() {
   try {
-    _state = await (await fetch("/dashboard/state")).json();
+    const [stateResp, comparisonResp] = await Promise.all([
+      fetch("/dashboard/state"),
+      fetch("/api/comparison-reviews"),
+    ]);
+    _state = await stateResp.json();
+    _comparisonReviews = comparisonResp.ok ? await comparisonResp.json() : [];
     if (_state.recent_snapshots?.length && !_snap) _snap = _state.recent_snapshots[0];
     renderKpis();
     renderToolStatuses();
@@ -2093,13 +2152,6 @@ document.getElementById("run-demo-button").addEventListener("click", () => runTo
 }));
 
 // ── SIMULATOR ────────────────────────────────────────
-const SIM_SCENARIOS = {
-  pricing:  { label: "Pricing question",       body: "What are your rates? How much does this cost?",      channel: "email" },
-  meeting:  { label: "Meeting request",        body: "I would like to schedule a discovery call",          channel: "email" },
-  followup: { label: "General follow-up",      body: "Thanks for the context, just checking in",           channel: "email" },
-  sms:      { label: "Asked to be texted",     body: "Can you text me the booking details?",               channel: "email" },
-  stop:     { label: "Stop / Unsubscribe",     body: "stop",                                               channel: "email" },
-};
 
 let _simProspect = null;
 let _simAllCompanies = [];
@@ -2200,10 +2252,58 @@ function simAddMessage(role, who, text, badges = []) {
   thread.scrollTop = thread.scrollHeight;
 }
 
+function simAddComparisonMessage(comparison) {
+  const thread = document.getElementById("sim-thread");
+  const empty = thread.querySelector(".sim-empty");
+  if (empty) empty.remove();
+  const judgeDisabled = comparison.judge_enabled === false || String(comparison.judge_reason || "").toLowerCase() === "judge disabled";
+  const verdict = judgeDisabled ? "judge_disabled" : String(comparison.judge_verdict || "needs_human_review").toLowerCase();
+  const decision = String(comparison.final_decision || "human_review").toLowerCase();
+  const blocked = decision !== "allow";
+  const verdictLabel = judgeDisabled ? "JUDGE DISABLED" : verdict === "needs_human_review" ? "HUMAN REVIEW" : verdict.toUpperCase();
+  const decisionLabel = judgeDisabled ? "ALLOW (OLD BEHAVIOR)" : finalDecisionLabel(decision);
+  const dryRunNote = comparison.comparison_dry_run
+    ? `<div class="comparison-body" style="margin-top:6px"><strong>Dry-run:</strong> no real email/SMS/CRM/calendar action was sent or committed.</div>`
+    : "";
+  const disabledNote = judgeDisabled
+    ? `<div class="comparison-body" style="margin-top:6px"><strong>Setup:</strong> TENACIOUS_JUDGE_ENABLED is not active for this running dashboard, so Week 11 did not review this output.</div>`
+    : "";
+  const comparisonTitle = comparison.title || "Week 10 vs Week 11 Judge Comparison";
+  const baselineTitle = comparison.baseline_title || "Week 10 Baseline Output";
+  thread.insertAdjacentHTML("beforeend", `
+    <div class="sim-msg system">
+      <div class="sim-avatar s">W11</div>
+      <div class="sim-msg-body">
+        <div class="sim-msg-who">${esc(comparisonTitle)}</div>
+        <div class="comparison-grid">
+          <div class="comparison-panel">
+            <div class="comparison-title">${esc(baselineTitle)}</div>
+            <div class="comparison-body">${esc(comparison.baseline_output || "(no baseline output)")}</div>
+            <div class="comparison-meta">
+              ${bdg(titl(comparison.action_type), "s-info")}
+              ${bdg(titl(comparison.channel), "s-nil")}
+            </div>
+          </div>
+          <div class="comparison-panel ${blocked ? "blocked" : ""}">
+            <div class="comparison-title">Week 11 Judge Review</div>
+            <div class="comparison-meta" style="margin-top:0;margin-bottom:7px">
+              ${bdg(verdictLabel, verdictTone(verdict))}
+              ${bdg(decisionLabel, decision === "allow" ? "s-ok" : decision === "block" ? "s-err" : "s-warn")}
+            </div>
+            <div class="comparison-body"><strong>Reason:</strong> ${esc(comparison.judge_reason || "No reason provided.")}</div>
+            <div class="comparison-body" style="margin-top:6px"><strong>Improvement:</strong> ${esc(comparison.improvement_summary || "No change.")}</div>
+            ${disabledNote}
+            ${dryRunNote}
+          </div>
+        </div>
+      </div>
+    </div>`);
+  thread.scrollTop = thread.scrollHeight;
+}
+
 function simEnableButtons(on) {
-  ["pricing","meeting","followup","sms","stop"].forEach(k => {
-    document.getElementById("sbtn-" + k).disabled = !on;
-  });
+  document.getElementById("sim-composer").style.display = on ? "block" : "none";
+  document.getElementById("sim-send-btn").disabled = !on;
 }
 
 document.getElementById("sim-form").addEventListener("submit", async e => {
@@ -2239,14 +2339,50 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
       <div class="kvr"><span class="kk">Status</span><span class="kv-val">${esc(p.status)}</span></div>
     `;
 
+    const emailResult = (_simProspect.toolchain_report?.results || []).find(x => x.name === "email");
+    const emailStatus = String(emailResult?.status || "previewed").toLowerCase();
+    const emailReallySent = emailStatus === "executed" && String(emailResult?.message || "").toLowerCase().includes("live email");
+    const emailBlocked = emailStatus === "skipped";
+    const emailLine = emailReallySent
+      ? `Pipeline complete. Live initial outreach email submitted to ${p.contact_email || "prospect"}.`
+      : emailBlocked
+      ? `Pipeline stopped. Initial outreach was not sent: ${emailResult?.message || "blocked before delivery"}.`
+      : `Pipeline complete. Initial outreach email was previewed locally for ${p.contact_email || "prospect"}; no real email was delivered.`;
+
     // Add initial system message to thread
     document.getElementById("sim-thread").innerHTML = "";
-    simAddMessage("system", "Tenacious System — Initial Email Sent", `Pipeline complete. Initial outreach email sent to ${p.contact_email || "prospect"}.`, [
+    simAddMessage("system", emailReallySent ? "Tenacious System — Initial Email Sent" : emailBlocked ? "Tenacious System — Initial Email Blocked" : "Tenacious System — Initial Email Preview", emailLine, [
       { text: p.primary_segment_label || p.primary_segment, tone: "s-info" },
       { text: "AI Maturity " + p.ai_maturity_score + "/3", tone: "s-nil" },
+      { text: titl(emailStatus), tone: tone(emailStatus) },
     ]);
+    try {
+      const art = await fetch(`/artifacts/${p.prospect_id}/email`);
+      if (art.ok) {
+        const emailArtifact = JSON.parse(await art.text());
+        const judgeReview = emailArtifact.judge_review || {};
+        const verdict = String(judgeReview.verdict || "").toLowerCase();
+        if (verdict || judgeReview.reason) {
+          simAddComparisonMessage({
+            title: "Week 11 Initial Outreach Review",
+            baseline_title: "Initial Outreach Draft",
+            baseline_output: `Subject: ${emailArtifact.subject || ""}\n\n${emailArtifact.body || ""}`,
+            action_type: "email",
+            channel: "email",
+            judge_verdict: verdict || "pass",
+            judge_reason: judgeReview.reason || "No reason provided.",
+            final_decision: emailBlocked ? "human_review" : "allow",
+            improvement_summary: emailBlocked
+              ? "Stopped initial outreach before sending."
+              : "Initial outreach passed the Week 11 guardrail.",
+            comparison_dry_run: Boolean(emailArtifact.comparison_dry_run),
+            judge_enabled: String(judgeReview.reason || "").toLowerCase() !== "judge disabled",
+          });
+        }
+      }
+    } catch {}
     simEnableButtons(true);
-    status.textContent = "Prospect created. Now click a scenario to simulate a reply.";
+    status.textContent = "Prospect created. Type a message to continue the conversation.";
     await loadState();
   } catch(err) {
     status.textContent = "Error: " + err.message;
@@ -2255,43 +2391,16 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
   }
 });
 
-let _simCurrentScenario = null;
-
-function simSelect(scenario) {
-  if (!_simProspect) return;
-  _simCurrentScenario = scenario;
-  const sc = SIM_SCENARIOS[scenario];
-  // Highlight active button
-  document.querySelectorAll(".sim-btn").forEach(b => b.classList.remove("active"));
-  document.getElementById("sbtn-" + scenario).classList.add("active");
-  // Fill composer
-  document.getElementById("sim-scenario-label").textContent = sc.label;
-  document.getElementById("sim-body-input").value = sc.body;
-  document.getElementById("sim-composer").style.display = "block";
-  document.getElementById("sim-reply-status").textContent = "";
-  document.getElementById("sim-body-input").focus();
-}
-
-function simClearComposer() {
-  _simCurrentScenario = null;
-  document.getElementById("sim-composer").style.display = "none";
-  document.querySelectorAll(".sim-btn").forEach(b => b.classList.remove("active"));
-}
-
 async function simSend() {
-  if (!_simProspect || !_simCurrentScenario) return;
-  const scenario = _simCurrentScenario;
+  if (!_simProspect) return;
   const p = _simProspect.prospect;
-  const sc = SIM_SCENARIOS[scenario];
   const customBody = document.getElementById("sim-body-input").value.trim();
   if (!customBody) return;
 
   const statusEl = document.getElementById("sim-reply-status");
   document.getElementById("sim-send-btn").disabled = true;
-  simEnableButtons(false);
   statusEl.textContent = "Sending…";
 
-  // Show prospect message with the actual (possibly edited) text
   simAddMessage("prospect", p.contact_name || "Prospect", customBody);
 
   try {
@@ -2299,7 +2408,7 @@ async function simSend() {
       prospect_id:   p.prospect_id,
       contact_email: p.contact_email,
       contact_phone: p.contact_phone,
-      channel:       sc.channel,
+      channel:       "email",
       body:          customBody,
     };
     const r = await fetch("/conversations/reply", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
@@ -2319,6 +2428,32 @@ async function simSend() {
       ...(d.risk_flags || []).filter(f => !f.startsWith("sms_skipped:")).map(f => ({ text: f, tone: "s-warn" })),
     ];
     simAddMessage("system", "Tenacious System — Email Reply", replyText || "(no reply draft)", badges);
+
+    // Run judge on the actual reply and show the verdict panel
+    if (replyText) {
+      try {
+        const judgePayload = {
+          prospect_id:     p.prospect_id,
+          contact_email:   p.contact_email,
+          contact_phone:   p.contact_phone,
+          channel:         "email",
+          body:            customBody,
+          baseline_output: replyText,
+        };
+        const jr = await fetch("/api/simulator/compare-reply", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(judgePayload) });
+        if (jr.ok) {
+          const jc = await jr.json();
+          simAddComparisonMessage({
+            ...jc,
+            title: "Week 11 Agent Reply — Judge Review",
+            baseline_title: "Week 11 Agent Reply",
+            improvement_summary: jc.final_decision === "allow"
+              ? "Agent reply passed the Week 11 guardrail."
+              : (jc.improvement_summary || "Agent reply blocked by Week 11 judge."),
+          });
+        }
+      } catch { /* judge review is best-effort */ }
+    }
 
     // Show SMS result — check actual risk flags from server
     const flags = d.risk_flags || [];
@@ -2344,14 +2479,13 @@ async function simSend() {
     }
 
     statusEl.textContent = "Sent — " + titl(d.next_action || "");
-    simClearComposer();
+    document.getElementById("sim-body-input").value = "";
     await loadState();
   } catch(err) {
     simAddMessage("system", "System Error", err.message);
     statusEl.textContent = "Error: " + err.message;
   } finally {
     document.getElementById("sim-send-btn").disabled = false;
-    simEnableButtons(true);
   }
 }
 
@@ -2368,8 +2502,6 @@ document.getElementById("sim-reset-btn").addEventListener("click", () => {
   loadSimCompanies();
   document.getElementById("sim-run-status").textContent = "";
   document.getElementById("sim-reply-status").textContent = "";
-  document.getElementById("sim-composer").style.display = "none";
-  _simCurrentScenario = null;
   simEnableButtons(false);
 });
 
