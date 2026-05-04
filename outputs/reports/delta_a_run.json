@@ -1,0 +1,93 @@
+{
+  "comparison_requested": "delta_a",
+  "bootstrap_samples": 5000,
+  "random_seed": 20260501,
+  "conditions": {
+    "day1_baseline": {
+      "spec": {
+        "name": "day1_baseline",
+        "source_kind": "local_trace",
+        "description": "Week 10 baseline on Tenacious held-out traces.",
+        "backbone_id": "week10_conversion_engine",
+        "intervention": "week10_baseline",
+        "trained_component": false,
+        "artifact_path": "held_out_traces.jsonl",
+        "prompt_only": false,
+        "path_variant": "Path B",
+        "notes": "Delta A control arm."
+      },
+      "summary": {
+        "condition": "day1_baseline",
+        "task_count": 3,
+        "pass_at_1": 0.3333,
+        "ci95_low": 0.0,
+        "ci95_high": 1.0,
+        "avg_cost_per_task_usd": 0.023667,
+        "latency_p95_ms": 4187.0,
+        "avg_prompt_tokens": 311.0,
+        "avg_completion_tokens": 148.33,
+        "avg_total_tokens": 459.33,
+        "prompt_token_coverage_pct": 100.0,
+        "completion_token_coverage_pct": 100.0,
+        "llm_calls_total": 3,
+        "backbone_id": "week10_conversion_engine",
+        "intervention": "week10_baseline",
+        "trained_component": false,
+        "prompt_only": false,
+        "notes": "Delta A control arm."
+      },
+      "failure_count": 0
+    },
+    "full_method": {
+      "spec": {
+        "name": "full_method",
+        "source_kind": "local_trace",
+        "description": "Path B trained judge/critic guardrail on Tenacious held-out traces.",
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "trained_judge_guardrail",
+        "trained_component": true,
+        "artifact_path": "held_out_traces.jsonl",
+        "prompt_only": false,
+        "path_variant": "Path B",
+        "notes": "Delta A treatment arm and Delta B treatment arm."
+      },
+      "summary": {
+        "condition": "full_method",
+        "task_count": 3,
+        "pass_at_1": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0,
+        "avg_cost_per_task_usd": 0.025667,
+        "latency_p95_ms": 2471.0,
+        "avg_prompt_tokens": 366.0,
+        "avg_completion_tokens": 190.0,
+        "avg_total_tokens": 556.0,
+        "prompt_token_coverage_pct": 100.0,
+        "completion_token_coverage_pct": 100.0,
+        "llm_calls_total": 6,
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "trained_judge_guardrail",
+        "trained_component": true,
+        "prompt_only": false,
+        "notes": "Delta A treatment arm and Delta B treatment arm."
+      },
+      "failure_count": 0
+    }
+  },
+  "comparisons": {
+    "delta_a": {
+      "name": "delta_a",
+      "control_condition": "day1_baseline",
+      "treatment_condition": "full_method",
+      "delta": 0.6667,
+      "ci95_low": 0.0,
+      "ci95_high": 1.0,
+      "p_value": 0.5,
+      "statistical_test": "paired_bootstrap_ci + exact_mcnemar",
+      "paired_task_count": 3,
+      "notes": "Trained Path B judge/critic guardrail vs Week 10 baseline on Tenacious held-out."
+    }
+  },
+  "failures": [],
+  "wall_clock_ms": 25.463
+}

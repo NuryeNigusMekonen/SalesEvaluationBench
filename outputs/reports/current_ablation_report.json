@@ -1,0 +1,207 @@
+{
+  "comparison_requested": "all",
+  "bootstrap_samples": 5000,
+  "random_seed": 20260501,
+  "conditions": {
+    "day1_baseline": {
+      "spec": {
+        "name": "day1_baseline",
+        "source_kind": "local_trace",
+        "description": "Week 10 baseline on Tenacious held-out traces.",
+        "backbone_id": "week10_conversion_engine",
+        "intervention": "week10_baseline",
+        "trained_component": false,
+        "artifact_path": "/home/nurye/Desktop/TRP1/week10/TheConversionEngine/held_out_traces.jsonl",
+        "prompt_only": false,
+        "path_variant": "Path B",
+        "notes": "Delta A control arm."
+      },
+      "summary": {
+        "condition": "day1_baseline",
+        "task_count": 2,
+        "pass_at_1": 0.5,
+        "ci95_low": 0.0,
+        "ci95_high": 1.0,
+        "avg_cost_per_task_usd": 0.0235,
+        "latency_p95_ms": 4091.5,
+        "avg_prompt_tokens": 306.5,
+        "avg_completion_tokens": 150.0,
+        "avg_total_tokens": 456.5,
+        "prompt_token_coverage_pct": 100.0,
+        "completion_token_coverage_pct": 100.0,
+        "llm_calls_total": 2,
+        "backbone_id": "week10_conversion_engine",
+        "intervention": "week10_baseline",
+        "trained_component": false,
+        "prompt_only": false,
+        "notes": "Delta A control arm."
+      },
+      "failure_count": 0
+    },
+    "automated_optimization_budget_match": {
+      "spec": {
+        "name": "automated_optimization_budget_match",
+        "source_kind": "local_trace",
+        "description": "Prompt-engineered only comparator on the same backbone, no training.",
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "prompt_engineered_only_no_training",
+        "trained_component": false,
+        "artifact_path": "/home/nurye/Desktop/TRP1/week10/TheConversionEngine/held_out_traces.jsonl",
+        "prompt_only": true,
+        "path_variant": "Path B",
+        "notes": "Delta B control arm: same backbone, prompt-only intervention."
+      },
+      "summary": {
+        "condition": "automated_optimization_budget_match",
+        "task_count": 2,
+        "pass_at_1": 0.5,
+        "ci95_low": 0.0,
+        "ci95_high": 1.0,
+        "avg_cost_per_task_usd": 0.028,
+        "latency_p95_ms": 5050.5,
+        "avg_prompt_tokens": 415.5,
+        "avg_completion_tokens": 180.5,
+        "avg_total_tokens": 596.0,
+        "prompt_token_coverage_pct": 100.0,
+        "completion_token_coverage_pct": 100.0,
+        "llm_calls_total": 4,
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "prompt_engineered_only_no_training",
+        "trained_component": false,
+        "prompt_only": true,
+        "notes": "Delta B control arm: same backbone, prompt-only intervention."
+      },
+      "failure_count": 0
+    },
+    "full_method": {
+      "spec": {
+        "name": "full_method",
+        "source_kind": "local_trace",
+        "description": "Path B trained judge/critic guardrail on Tenacious held-out traces.",
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "trained_judge_guardrail",
+        "trained_component": true,
+        "artifact_path": "/home/nurye/Desktop/TRP1/week10/TheConversionEngine/held_out_traces.jsonl",
+        "prompt_only": false,
+        "path_variant": "Path B",
+        "notes": "Delta A treatment arm and Delta B treatment arm."
+      },
+      "summary": {
+        "condition": "full_method",
+        "task_count": 2,
+        "pass_at_1": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0,
+        "avg_cost_per_task_usd": 0.0255,
+        "latency_p95_ms": 2471.5,
+        "avg_prompt_tokens": 364.5,
+        "avg_completion_tokens": 189.5,
+        "avg_total_tokens": 554.0,
+        "prompt_token_coverage_pct": 100.0,
+        "completion_token_coverage_pct": 100.0,
+        "llm_calls_total": 4,
+        "backbone_id": "Qwen/Qwen2.5-3B-Instruct",
+        "intervention": "trained_judge_guardrail",
+        "trained_component": true,
+        "prompt_only": false,
+        "notes": "Delta A treatment arm and Delta B treatment arm."
+      },
+      "failure_count": 0
+    },
+    "tau2_reference_info": {
+      "spec": {
+        "name": "tau2_reference_info",
+        "source_kind": "tau2_reference",
+        "description": "Informational tau2 reference handler; no rerun.",
+        "backbone_id": "openrouter/deepseek/deepseek-chat",
+        "intervention": "informational_reference_only",
+        "trained_component": false,
+        "artifact_path": null,
+        "prompt_only": false,
+        "path_variant": "Path B",
+        "notes": "Delta C informational only."
+      },
+      "summary": {
+        "condition": "tau2_reference_info",
+        "task_count": 26,
+        "pass_at_1": 0.462,
+        "ci95_low": null,
+        "ci95_high": null,
+        "avg_cost_per_task_usd": 0.0,
+        "latency_p95_ms": 0.0,
+        "avg_prompt_tokens": 0.0,
+        "avg_completion_tokens": 0.0,
+        "avg_total_tokens": 0.0,
+        "prompt_token_coverage_pct": 0.0,
+        "completion_token_coverage_pct": 0.0,
+        "llm_calls_total": 0,
+        "backbone_id": "openrouter/deepseek/deepseek-chat",
+        "intervention": "informational_reference_only",
+        "trained_component": false,
+        "prompt_only": false,
+        "notes": "Informational only. Official reference from admin_provided_tau2_reference: 0.42 pass@1. No tau2 rerun performed by this harness."
+      },
+      "failure_count": 0
+    }
+  },
+  "comparisons": {
+    "delta_a": {
+      "name": "delta_a",
+      "control_condition": "day1_baseline",
+      "treatment_condition": "full_method",
+      "delta": 0.5,
+      "ci95_low": 0.0,
+      "ci95_high": 1.0,
+      "p_value": 1.0,
+      "statistical_test": "paired_bootstrap_ci + exact_mcnemar",
+      "paired_task_count": 2,
+      "notes": "Trained Path B judge/critic guardrail vs Week 10 baseline on Tenacious held-out."
+    },
+    "delta_b": {
+      "name": "delta_b",
+      "control_condition": "automated_optimization_budget_match",
+      "treatment_condition": "full_method",
+      "delta": 0.5,
+      "ci95_low": 0.0,
+      "ci95_high": 1.0,
+      "p_value": 1.0,
+      "statistical_test": "paired_bootstrap_ci + exact_mcnemar",
+      "paired_task_count": 2,
+      "notes": "Same backbone; prompt-engineered-only comparator vs trained component."
+    },
+    "delta_c": {
+      "name": "delta_c",
+      "mode": "informational_only",
+      "tau2_reference_pass_at_1": 0.42,
+      "recorded_tau2_pass_at_1": 0.462,
+      "delta": 0.042,
+      "statistical_test": "not_run_no_tau2_rerun",
+      "notes": "Informational only. Official reference from admin_provided_tau2_reference: 0.42 pass@1. No tau2 rerun performed by this harness."
+    },
+    "cost_pareto": [
+      {
+        "condition": "day1_baseline",
+        "pass_at_1": 0.5,
+        "avg_cost_per_task_usd": 0.0235,
+        "latency_p95_ms": 4091.5,
+        "pareto_optimal": true
+      },
+      {
+        "condition": "automated_optimization_budget_match",
+        "pass_at_1": 0.5,
+        "avg_cost_per_task_usd": 0.028,
+        "latency_p95_ms": 5050.5,
+        "pareto_optimal": false
+      },
+      {
+        "condition": "full_method",
+        "pass_at_1": 1.0,
+        "avg_cost_per_task_usd": 0.0255,
+        "latency_p95_ms": 2471.5,
+        "pareto_optimal": true
+      }
+    ]
+  },
+  "failures": [],
+  "wall_clock_ms": 18.622
+}
