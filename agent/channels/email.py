@@ -3,6 +3,7 @@ from urllib.error import HTTPError
 
 from agent.config import settings
 from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
+from agent.evaluation.governance_courtroom import governance_runtime_gate_decision, review_candidate_action
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
@@ -108,13 +109,80 @@ class EmailChannel:
         prospect_context: dict | None = None,
         hiring_signal_brief: dict | None = None,
         competitor_gap_brief: dict | None = None,
+        inbound_body: str | None = None,
     ) -> ToolExecutionResult:
+        governance_review = review_candidate_action(
+            {
+                "prospect_context": prospect_context
+                or {"prospect_id": prospect_id, "contact_email": recipient},
+                "hiring_signal_brief": hiring_signal_brief or {},
+                "competitor_gap_brief": competitor_gap_brief or {},
+                "inbound_body": inbound_body or "",
+                "agent_output": f"Subject: {subject}\n\n{body}",
+                "action_type": "email",
+                "channel": "email",
+                "prospect_id": prospect_id,
+            }
+        )
+        runtime_gate_decision = governance_runtime_gate_decision(governance_review)
+        effective_governance_decision = runtime_gate_decision or governance_review.final_decision
+        effective_governance_verdict = (
+            "fail"
+            if effective_governance_decision == "block"
+            else "needs_human_review"
+            if effective_governance_decision == "human_review"
+            else governance_review.final_verdict
+        )
+        effective_enforcement = bool(governance_review.enforcement_applied or runtime_gate_decision)
+
+        if effective_governance_decision != "allow" and effective_enforcement:
+            preview_label = (
+                "Needs human review"
+                if effective_governance_decision == "human_review"
+                else "Blocked by Week 2 governance courtroom"
+            )
+            governance_rules = list(governance_review.rules_applied)
+            if runtime_gate_decision and "runtime_category_gate" not in governance_rules:
+                governance_rules.append("runtime_category_gate")
+            artifact_ref = self._write_artifact(
+                {
+                    "provider": settings.email_provider,
+                    "draft": True,
+                    "outbound_enabled": False,
+                    "comparison_mode": comparison_mode_enabled(),
+                    "comparison_dry_run": comparison_dry_run_enabled(),
+                    "recipient": recipient or settings.resend_from_email,
+                    "subject": subject,
+                    "body": body,
+                    "week2_status": preview_label,
+                    "governance_review": {
+                        "review_id": governance_review.review_id,
+                        "final_verdict": effective_governance_verdict,
+                        "final_decision": effective_governance_decision,
+                        "primary_risk_focus": governance_review.primary_risk_focus,
+                        "overall_score": governance_review.overall_score,
+                        "remediation_plan": governance_review.remediation_plan,
+                        "rules_applied": governance_rules,
+                        "enforcement_applied": effective_enforcement,
+                    },
+                },
+                prospect_id,
+            )
+            return ToolExecutionResult(
+                name="email",
+                mode=self.status().mode,
+                status="skipped",
+                message=f"{preview_label}: {governance_review.remediation_plan[0]}",
+                artifact_ref=artifact_ref,
+            )
+
         review = review_before_action(
             {
                 "prospect_context": prospect_context
                 or {"prospect_id": prospect_id, "contact_email": recipient},
                 "hiring_signal_brief": hiring_signal_brief or {},
                 "competitor_gap_brief": competitor_gap_brief or {},
+                "inbound_body": inbound_body or "",
                 "agent_output": f"Subject: {subject}\n\n{body}",
                 "action_type": "email",
                 "channel": "email",
@@ -140,9 +208,24 @@ class EmailChannel:
                     "subject": subject,
                     "body": body,
                     "week11_status": preview_label,
+                    "week2_status": (
+                        "Governance pass"
+                        if effective_governance_decision == "allow"
+                        else "Governance review suggested manual handling"
+                    ),
                     "judge_review": {
                         "verdict": verdict,
                         "reason": review["reason"],
+                    },
+                    "governance_review": {
+                        "review_id": governance_review.review_id,
+                        "final_verdict": effective_governance_verdict,
+                        "final_decision": effective_governance_decision,
+                        "primary_risk_focus": governance_review.primary_risk_focus,
+                        "overall_score": governance_review.overall_score,
+                        "remediation_plan": governance_review.remediation_plan,
+                        "rules_applied": governance_review.rules_applied,
+                        "enforcement_applied": effective_enforcement,
                     },
                 },
                 prospect_id,
@@ -172,6 +255,16 @@ class EmailChannel:
             "judge_review": {
                 "verdict": (review.get("judge") or {}).get("verdict"),
                 "reason": review.get("reason"),
+            },
+            "governance_review": {
+                "review_id": governance_review.review_id,
+                "final_verdict": effective_governance_verdict,
+                "final_decision": effective_governance_decision,
+                "primary_risk_focus": governance_review.primary_risk_focus,
+                "overall_score": governance_review.overall_score,
+                "remediation_plan": governance_review.remediation_plan,
+                "rules_applied": governance_review.rules_applied,
+                "enforcement_applied": effective_enforcement,
             },
             "recipient": recipient or settings.resend_from_email,
             "subject": subject,

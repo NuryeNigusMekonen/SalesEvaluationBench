@@ -3,6 +3,7 @@ from urllib.error import HTTPError
 
 from agent.config import settings
 from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
+from agent.evaluation.governance_courtroom import governance_runtime_gate_decision, review_candidate_action
 from agent.evaluation.tenacious_judge_adapter import review_before_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
@@ -48,10 +49,74 @@ class SmsChannel:
         *,
         allow_warm_lead: bool = False,
         booking_link: str | None = None,
+        inbound_body: str | None = None,
         prospect_context: dict | None = None,
         hiring_signal_brief: dict | None = None,
         competitor_gap_brief: dict | None = None,
     ) -> ToolExecutionResult:
+        governance_review = review_candidate_action(
+            {
+                "prospect_context": prospect_context
+                or {"prospect_id": prospect_id, "contact_phone": phone_number},
+                "hiring_signal_brief": hiring_signal_brief or {},
+                "competitor_gap_brief": competitor_gap_brief or {},
+                "agent_output": body,
+                "action_type": "sms",
+                "channel": "sms",
+                "prospect_id": prospect_id,
+                "inbound_body": inbound_body,
+            }
+        )
+        runtime_gate_decision = governance_runtime_gate_decision(governance_review)
+        effective_governance_decision = runtime_gate_decision or governance_review.final_decision
+        effective_governance_verdict = (
+            "fail"
+            if effective_governance_decision == "block"
+            else "needs_human_review"
+            if effective_governance_decision == "human_review"
+            else governance_review.final_verdict
+        )
+        effective_enforcement = bool(governance_review.enforcement_applied or runtime_gate_decision)
+
+        if effective_governance_decision != "allow" and effective_enforcement:
+            preview_label = (
+                "Needs human review"
+                if effective_governance_decision == "human_review"
+                else "Blocked by Week 2 governance courtroom"
+            )
+            artifact_ref = self._write_artifact(
+                {
+                    "provider": settings.sms_provider,
+                    "draft": True,
+                    "outbound_enabled": False,
+                    "comparison_mode": comparison_mode_enabled(),
+                    "comparison_dry_run": comparison_dry_run_enabled(),
+                    "phone_number": phone_number or "warm-lead-preview",
+                    "body": body,
+                    "warm_lead_gate_passed": allow_warm_lead,
+                    "booking_link": booking_link,
+                    "week2_status": preview_label,
+                    "governance_review": {
+                        "review_id": governance_review.review_id,
+                        "final_verdict": effective_governance_verdict,
+                        "final_decision": effective_governance_decision,
+                        "primary_risk_focus": governance_review.primary_risk_focus,
+                        "overall_score": governance_review.overall_score,
+                        "remediation_plan": governance_review.remediation_plan,
+                        "rules_applied": governance_review.rules_applied,
+                        "enforcement_applied": effective_enforcement,
+                    },
+                },
+                prospect_id,
+            )
+            return ToolExecutionResult(
+                name="sms",
+                mode=self.status().mode,
+                status="skipped",
+                message=f"{preview_label}: {governance_review.remediation_plan[0]}",
+                artifact_ref=artifact_ref,
+            )
+
         review = review_before_action(
             {
                 "prospect_context": prospect_context
@@ -62,6 +127,7 @@ class SmsChannel:
                 "action_type": "sms",
                 "channel": "sms",
                 "prospect_id": prospect_id,
+                "inbound_body": inbound_body,
             }
         )
         if not review["allow"]:
@@ -84,9 +150,24 @@ class SmsChannel:
                     "warm_lead_gate_passed": allow_warm_lead,
                     "booking_link": booking_link,
                     "week11_status": preview_label,
+                    "week2_status": (
+                        "Governance pass"
+                        if effective_governance_decision == "allow"
+                        else "Governance review suggested manual handling"
+                    ),
                     "judge_review": {
                         "verdict": verdict,
                         "reason": review["reason"],
+                    },
+                    "governance_review": {
+                        "review_id": governance_review.review_id,
+                        "final_verdict": effective_governance_verdict,
+                        "final_decision": effective_governance_decision,
+                        "primary_risk_focus": governance_review.primary_risk_focus,
+                        "overall_score": governance_review.overall_score,
+                        "remediation_plan": governance_review.remediation_plan,
+                        "rules_applied": governance_review.rules_applied,
+                        "enforcement_applied": effective_enforcement,
                     },
                 },
                 prospect_id,
@@ -113,10 +194,25 @@ class SmsChannel:
                 if comparison_mode_enabled() and comparison_dry_run_enabled()
                 else "Allowed by Week 11 judge"
             ),
+            "week2_status": (
+                "Governance pass"
+                if effective_governance_decision == "allow"
+                else "Governance review suggested manual handling"
+            ),
             "phone_number": phone_number or "warm-lead-preview",
             "body": body,
             "warm_lead_gate_passed": allow_warm_lead,
             "booking_link": booking_link,
+            "governance_review": {
+                "review_id": governance_review.review_id,
+                "final_verdict": effective_governance_verdict,
+                "final_decision": effective_governance_decision,
+                "primary_risk_focus": governance_review.primary_risk_focus,
+                "overall_score": governance_review.overall_score,
+                "remediation_plan": governance_review.remediation_plan,
+                "rules_applied": governance_review.rules_applied,
+                "enforcement_applied": effective_enforcement,
+            },
         }
         artifact_ref = self._write_artifact(payload, prospect_id)
         status = self.status()
@@ -212,6 +308,7 @@ class SmsChannel:
         contact_name: str | None,
         contact_email: str | None,
         allow_warm_lead: bool = False,
+        inbound_body: str | None = None,
         prospect_context: dict | None = None,
         hiring_signal_brief: dict | None = None,
         competitor_gap_brief: dict | None = None,
@@ -232,6 +329,7 @@ class SmsChannel:
             prospect_id=prospect_id,
             allow_warm_lead=allow_warm_lead,
             booking_link=booking_link,
+            inbound_body=inbound_body or "Prospect requested booking details by SMS.",
             prospect_context=prospect_context
             or {
                 "prospect_id": prospect_id,
@@ -240,7 +338,16 @@ class SmsChannel:
                 "contact_email": contact_email,
                 "contact_phone": phone_number,
             },
-            hiring_signal_brief=hiring_signal_brief,
+            hiring_signal_brief=hiring_signal_brief
+            or {
+                "signals": [
+                    {
+                        "name": "warm_lead_booking_request",
+                        "summary": "Warm lead requested discovery-call booking details by SMS.",
+                        "confidence": 1.0,
+                    }
+                ]
+            },
             competitor_gap_brief=competitor_gap_brief,
         )
         return result, body

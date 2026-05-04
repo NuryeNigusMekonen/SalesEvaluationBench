@@ -14,6 +14,11 @@ from uuid import uuid4
 _PRICE_CLAIM_RE = re.compile(r"\$\d{1,3}(?:,\d{3})+")
 
 from agent.evaluation.tenacious_judge_adapter import review_before_action
+from agent.evaluation.governance_courtroom import (
+    governance_enabled,
+    governance_enforcement_enabled,
+    review_candidate_action,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 COMPARISON_LOG_PATH = PROJECT_ROOT / "agent" / "data" / "comparison_reviews.jsonl"
@@ -192,6 +197,9 @@ def append_comparison_review_log(record: dict) -> None:
         "final_decision": record.get("final_decision"),
         "changed_by_week11": record.get("changed_by_week11"),
         "improvement_summary": record.get("improvement_summary"),
+        "governance_review_id": record.get("governance_review_id"),
+        "governance_final_decision": record.get("governance_final_decision"),
+        "governance_enforced": record.get("governance_enforced", False),
     }
     COMPARISON_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with COMPARISON_LOG_PATH.open("a", encoding="utf-8") as handle:
@@ -288,6 +296,28 @@ def compare_candidate_action(
 
     verdict = str(judge.get("verdict") or "pass").lower()
     final_decision = _VERDICT_TO_DECISION.get(verdict, final_decision)
+
+    governance_review = None
+    governance_is_enabled = governance_enabled()
+    governance_is_enforced = False
+    if governance_is_enabled:
+        governance_review = review_candidate_action(
+            {
+                **candidate_action,
+                "prospect_id": prospect_id,
+                "channel": channel,
+                "action_type": action_type,
+                "agent_output": baseline_output,
+                "prospect_context": prospect_context,
+                "hiring_signal_brief": _safe_dict(candidate_action.get("hiring_signal_brief")),
+                "competitor_gap_brief": _safe_dict(candidate_action.get("competitor_gap_brief")),
+            }
+        )
+        if governance_enforcement_enabled() and governance_review.final_decision != "allow":
+            governance_is_enforced = True
+            final_decision = governance_review.final_decision
+            final_output = baseline_output if final_decision == "allow" else ""
+            changed = final_decision != "allow" or final_output != baseline_output
     record = {
         "comparison_id": f"cmp_{uuid4().hex[:16]}",
         "prospect_id": prospect_id,
@@ -311,6 +341,26 @@ def compare_candidate_action(
         "judge_enabled": is_judge_enabled,
         "comparison_mode": comparison_mode_enabled(),
         "comparison_dry_run": comparison_dry_run_enabled(),
+        "governance_enabled": governance_is_enabled,
+        "governance_review_id": governance_review.review_id if governance_review else None,
+        "governance_primary_risk_focus": (
+            governance_review.primary_risk_focus if governance_review else "none"
+        ),
+        "governance_final_verdict": governance_review.final_verdict if governance_review else "pass",
+        "governance_final_decision": (
+            governance_review.final_decision if governance_review else "allow"
+        ),
+        "governance_enforced": governance_is_enforced,
+        "governance_overall_score": (
+            governance_review.overall_score if governance_review else 5.0
+        ),
     }
+
+    if governance_is_enforced:
+        record["improvement_summary"] = (
+            "Week2 governance courtroom enforcement applied: action was overridden to "
+            f"'{final_decision}' for safety and reliability."
+        )
+
     append_comparison_review_log(record)
     return record

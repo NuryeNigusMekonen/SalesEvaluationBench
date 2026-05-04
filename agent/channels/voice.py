@@ -2,6 +2,7 @@ import json
 from urllib.error import HTTPError
 
 from agent.config import settings
+from agent.evaluation.governance_courtroom import governance_runtime_gate_decision, review_candidate_action
 from agent.schemas.prospect import InboundMessageRequest
 from agent.schemas.tools import ToolExecutionResult, ToolStatus
 from agent.utils.http import request_json
@@ -52,6 +53,34 @@ class VoiceChannel:
         context_brief_artifact_ref: str | None = None,
         reason: str = "warm_lead_voice_handoff",
     ) -> ToolExecutionResult:
+        governance_review = review_candidate_action(
+            {
+                "prospect_context": {
+                    "prospect_id": prospect_id,
+                    "company_name": company_name,
+                    "contact_name": contact_name,
+                    "contact_email": contact_email,
+                    "contact_phone": phone_number,
+                },
+                "hiring_signal_brief": {},
+                "competitor_gap_brief": {},
+                "agent_output": context_brief or "Voice handoff prepared.",
+                "action_type": "voice",
+                "channel": "voice",
+                "prospect_id": prospect_id,
+            }
+        )
+        runtime_gate_decision = governance_runtime_gate_decision(governance_review)
+        effective_governance_decision = runtime_gate_decision or governance_review.final_decision
+        effective_governance_verdict = (
+            "fail"
+            if effective_governance_decision == "block"
+            else "needs_human_review"
+            if effective_governance_decision == "human_review"
+            else governance_review.final_verdict
+        )
+        effective_enforcement = bool(governance_review.enforcement_applied or runtime_gate_decision)
+
         payload = {
             "provider": settings.voice_provider,
             "draft": True,
@@ -66,9 +95,37 @@ class VoiceChannel:
             "reason": reason,
             "context_brief": context_brief,
             "context_brief_artifact_ref": context_brief_artifact_ref,
+            "week2_status": (
+                "Governance pass"
+                if effective_governance_decision == "allow"
+                else "Governance review suggested manual handling"
+            ),
+            "governance_review": {
+                "review_id": governance_review.review_id,
+                "final_verdict": effective_governance_verdict,
+                "final_decision": effective_governance_decision,
+                "primary_risk_focus": governance_review.primary_risk_focus,
+                "overall_score": governance_review.overall_score,
+                "remediation_plan": governance_review.remediation_plan,
+                "rules_applied": governance_review.rules_applied,
+                "enforcement_applied": effective_enforcement,
+            },
         }
         artifact_ref = self._write_artifact(payload, prospect_id)
         status = self.status()
+        if effective_governance_decision != "allow" and effective_enforcement:
+            preview_label = (
+                "Needs human review"
+                if effective_governance_decision == "human_review"
+                else "Blocked by Week 2 governance courtroom"
+            )
+            return ToolExecutionResult(
+                name="voice",
+                mode=status.mode,
+                status="skipped",
+                message=f"{preview_label}: {governance_review.remediation_plan[0]}",
+                artifact_ref=artifact_ref,
+            )
         if not allow_warm_lead:
             return ToolExecutionResult(
                 name="voice",
