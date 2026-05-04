@@ -18,6 +18,11 @@ from agent.evaluation.comparison_service import (
     judge_enabled,
     read_comparison_reviews,
 )
+from agent.evaluation.governance_courtroom import (
+    governance_runtime_status,
+    read_governance_reviews,
+    review_candidate_action,
+)
 from agent.observability.tracing import TraceLogger
 from agent.orchestration.service import orchestrator
 from agent.schemas.briefs import ProspectEnrichmentResponse
@@ -72,6 +77,25 @@ def tools_status() -> list[ToolStatus]:
 @router.get("/api/comparison-reviews")
 def comparison_reviews(limit: int = 50) -> list[dict]:
     return read_comparison_reviews(limit=limit)
+
+
+@router.get("/api/governance/reviews")
+def governance_reviews(limit: int = 50) -> list[dict]:
+    return read_governance_reviews(limit=limit)
+
+
+@router.get("/api/governance/runtime")
+def governance_runtime() -> dict:
+    return governance_runtime_status()
+
+
+@router.post("/api/governance/review-candidate")
+def governance_review_candidate(payload: dict) -> dict:
+    review = review_candidate_action(payload)
+    return {
+        "ok": True,
+        "review": review.model_dump(mode="json"),
+    }
 
 
 def _infer_comparison_scenario(body: str, explicit: str | None = None) -> str:
@@ -416,38 +440,57 @@ def handle_reply(payload: InboundMessageRequest) -> ConversationDecision:
 
 
 @router.get("/prospects/seed-companies")
-def list_seed_companies() -> list[dict]:
+def list_seed_companies(active_only: bool = True, autorefresh: bool = True) -> list[dict]:
     import json
+
+    if active_only and autorefresh and settings.lead_auto_refresh_on_seed_query:
+        if not orchestrator.list_active_prospects(limit=1):
+            orchestrator.refresh_active_leads_from_sources(max_companies=150)
+
     snapshot_files = {
         "crunchbase": settings.crunchbase_snapshot_path,
         "job_posts": settings.job_posts_snapshot_path,
         "leadership": settings.leadership_snapshot_path,
     }
+    _ = snapshot_files
     cb = json.loads(settings.crunchbase_snapshot_path.read_text()) if settings.crunchbase_snapshot_path.exists() else []
     lead = json.loads(settings.leadership_snapshot_path.read_text()) if settings.leadership_snapshot_path.exists() else []
     contacts = {l.get("domain", ""): l for l in lead if l.get("domain")}
     in_db = {p.company_domain: p for p in orchestrator.list_prospects() if p.company_domain}
+    qualification_by_prospect = orchestrator.repository.qualification_map()
+    active_by_domain = {
+        p.company_domain: p
+        for p in orchestrator.list_active_prospects(limit=500)
+        if p.company_domain
+    }
     result = []
     for c in cb:
         domain = c.get("domain", "")
         lc = contacts.get(domain, {})
-        db_rec = in_db.get(domain)
+        db_rec = active_by_domain.get(domain) if active_only else in_db.get(domain)
+        q = qualification_by_prospect.get(db_rec.prospect_id, {}) if db_rec else {}
         result.append({
             "company_name": c.get("company_name", ""),
             "company_domain": domain,
-            "contact_name": lc.get("contact_name") or lc.get("name", ""),
-            "contact_email": lc.get("contact_email") or lc.get("email", ""),
+            "contact_name": (db_rec.contact_name if db_rec else None) or lc.get("contact_name") or lc.get("name", ""),
+            "contact_email": (db_rec.contact_email if db_rec else None) or lc.get("contact_email") or lc.get("email", ""),
             "funding_musd": c.get("funding_musd"),
             "employee_count": c.get("employee_count"),
             "sector": c.get("sector", ""),
             "in_pipeline": db_rec is not None,
             "pipeline_status": db_rec.status if db_rec else None,
             "prospect_id": db_rec.prospect_id if db_rec else None,
+            "active_qualified": bool(db_rec and db_rec.status == "active_qualified_tenacious_pass"),
+            "qualification_score": q.get("qualification_score"),
+            "source_hit_count": q.get("source_hit_count"),
+            "qualification_reason": q.get("qualification_reason"),
         })
     # Also include DB prospects whose domain isn't in snapshot
     snapshot_domains = {c.get("domain", "") for c in cb}
-    for domain, p in in_db.items():
+    loop_source = active_by_domain if active_only else in_db
+    for domain, p in loop_source.items():
         if domain not in snapshot_domains:
+            q = qualification_by_prospect.get(p.prospect_id, {})
             result.append({
                 "company_name": p.company_name,
                 "company_domain": domain,
@@ -459,8 +502,37 @@ def list_seed_companies() -> list[dict]:
                 "in_pipeline": True,
                 "pipeline_status": p.status,
                 "prospect_id": p.prospect_id,
+                "active_qualified": p.status == "active_qualified_tenacious_pass",
+                "qualification_score": q.get("qualification_score"),
+                "source_hit_count": q.get("source_hit_count"),
+                "qualification_reason": q.get("qualification_reason"),
             })
+    if active_only:
+        result = [row for row in result if row.get("active_qualified")]
     return result
+
+
+@router.get("/prospects/active", response_model=list[ProspectRecord])
+def list_active_prospects(limit: int = 200) -> list[ProspectRecord]:
+    return orchestrator.list_active_prospects(limit=limit)
+
+
+@router.post("/prospects/refresh-active")
+def refresh_active_prospects(max_companies: int = 150) -> dict[str, object]:
+    result = orchestrator.refresh_active_leads_from_sources(max_companies=max_companies)
+    return {
+        "ok": True,
+        **result,
+    }
+
+
+@router.get("/prospects/corrections")
+def list_correction_history(prospect_id: str | None = None, limit: int = 50) -> list[dict]:
+    bounded_limit = max(1, min(limit, 200))
+    return orchestrator.repository.list_correction_history(
+        prospect_id=prospect_id,
+        limit=bounded_limit,
+    )
 
 
 @router.get("/prospects", response_model=list[ProspectRecord])

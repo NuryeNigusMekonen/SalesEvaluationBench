@@ -54,6 +54,13 @@ class TenaciousJudgeRuntimeStatus(BaseModel):
     judge_disabled_warning: str | None = None
 
 
+class TenaciousGovernanceRuntimeStatus(BaseModel):
+    tenacious_governance_enabled: bool = False
+    tenacious_governance_enforce: bool = False
+    log_path: str = ""
+    log_exists: bool = False
+
+
 class DashboardStateResponse(BaseModel):
     total_prospects: int = 0
     total_traces: int = 0
@@ -65,4 +72,7 @@ class DashboardStateResponse(BaseModel):
     latest_artifacts: list[DashboardArtifact] = Field(default_factory=list)
     tenacious_judge_runtime: TenaciousJudgeRuntimeStatus = Field(
         default_factory=TenaciousJudgeRuntimeStatus
+    )
+    tenacious_governance_runtime: TenaciousGovernanceRuntimeStatus = Field(
+        default_factory=TenaciousGovernanceRuntimeStatus
     )

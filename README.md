@@ -274,6 +274,54 @@ This is a visible warning, not a startup failure. Default Week 10 behavior (judg
 
 If the ML adapter is missing, dependencies are absent, or inference fails, `review_before_action()` returns `needs_human_review`. All real sends are blocked automatically.
 
+### Week 2 Governance Sidecar (Week10 + Week11 + Week2)
+
+The repository now includes a Week2-inspired "Digital Courtroom" sidecar for runtime governance.
+
+- Module: `agent/evaluation/governance_courtroom.py`
+- Log: `agent/data/governance_reviews.jsonl`
+- Schema: `agent/schemas/governance.py`
+
+Design intent:
+
+- Week10 keeps generation/orchestration behavior.
+- Week2 sidecar adds detective evidence + prosecutor/defense/tech-lead opinions + deterministic chief-justice synthesis.
+- Week11 consumes sidecar traces as additional benchmark/training seeds.
+
+Runtime flags:
+
+- `TENACIOUS_GOVERNANCE_ENABLED` (default `true`): run courtroom review in shadow mode.
+- `TENACIOUS_GOVERNANCE_ENFORCE` (default `false`): allow courtroom to enforce `block` / `human_review` decisions.
+
+New API endpoints:
+
+- `GET /api/governance/runtime`
+- `GET /api/governance/reviews`
+- `POST /api/governance/review-candidate`
+
+Example candidate review payload:
+
+```json
+{
+  "prospect_id": "pros_123",
+  "action_type": "email_reply",
+  "channel": "email",
+  "agent_output": "We can guarantee 30% savings and discount your first quarter.",
+  "inbound_body": "Can you text me pricing details?",
+  "prospect_context": {"company_name": "Acme"},
+  "hiring_signal_brief": {"signals": []},
+  "competitor_gap_brief": {}
+}
+```
+
+Week11 bridge exporter:
+
+```bash
+python generation_scripts/export_governance_reviews_to_week11.py
+```
+
+This writes `training/data/governance_bridge_tasks.jsonl` so governance review traces can be converted into benchmark-style task rows.
+
 ### Cost Discipline
 
 - Compute envelope: **$10 per trainee** (challenge limit).

@@ -4,7 +4,7 @@ DASHBOARD_HTML = """
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Conversion Engine — Tenacious</title>
+  <title>Tenacious Sales Pipeline Agent</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -25,7 +25,7 @@ DASHBOARD_HTML = """
       --red: #b91c1c;
       --red-soft: #fee2e2;
       --gray-soft: #f1f5f9;
-      --sidebar-w: 216px;
+      --sidebar-w: 228px;
       --radius: 8px;
       --shadow: 0 1px 3px rgba(15,31,61,.07), 0 4px 14px rgba(15,31,61,.05);
     }
@@ -152,7 +152,7 @@ DASHBOARD_HTML = """
     .team-info small { font-size: 10.5px; color: var(--muted); }
 
     /* ── WORKSPACE ─────────────────────────── */
-    .workspace { min-width: 0; padding: 22px 26px 40px; }
+    .workspace { min-width: 0; padding: 24px 28px 44px; }
 
     /* ── TOPBAR ────────────────────────────── */
     .topbar {
@@ -163,8 +163,9 @@ DASHBOARD_HTML = """
       margin-bottom: 18px;
     }
 
-    .page-title h1 { font-size: 20px; font-weight: 800; color: var(--ink); line-height: 1.2; }
-    .page-title p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .page-title { max-width: 760px; }
+    .page-title h1 { font-size: 24px; font-weight: 800; color: var(--ink); line-height: 1.15; }
+    .page-title p { font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 680px; }
 
     .actions { display: flex; gap: 7px; flex-shrink: 0; flex-wrap: wrap; }
 
@@ -187,13 +188,15 @@ DASHBOARD_HTML = """
     .btn:hover { border-color: var(--blue); color: var(--blue); }
     .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; }
     .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); color: #fff; }
+    .btn-danger { background: var(--red-soft); border-color: #fca5a5; color: #9f1239; }
+    .btn-danger:hover { background: #fecaca; border-color: #ef4444; color: #7f1d1d; }
     button:disabled { opacity: .6; cursor: wait; }
     .btn-sm { height: 26px; padding: 0 9px; font-size: 11.5px; }
 
     /* ── KPI ROW ───────────────────────────── */
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -271,8 +274,8 @@ DASHBOARD_HTML = """
       flex-shrink: 0;
     }
 
-    .card-body { padding: 12px 16px 16px; }
-    .card-pad { padding: 14px 16px 16px; }
+    .card-body { padding: 14px 18px 18px; }
+    .card-pad { padding: 16px 18px 18px; }
 
     /* ── SECTION HEADING ───────────────────── */
     .sec-hd {
@@ -280,10 +283,16 @@ DASHBOARD_HTML = """
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin: 18px 0 10px;
+      margin: 22px 0 12px;
     }
-    .sec-hd h2 { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .sec-hd h2 { font-size: 14px; font-weight: 700; color: var(--ink); }
     .sec-hd p { font-size: 12px; color: var(--muted); }
+
+    .intelligence-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 13px;
+    }
 
     /* ── BADGES / CHIPS ────────────────────── */
     .badge, .chip {
@@ -553,42 +562,6 @@ DASHBOARD_HTML = """
     .cfg-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
     .cfg-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-    /* ── GUARDRAILS STRIP ──────────────────── */
-    .gr-strip {
-      margin-top: 18px;
-      padding: 12px 16px;
-      background: var(--surface);
-      border: 1px solid #9fb9ea;
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-    .gr-label {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: var(--ink);
-      padding-right: 14px;
-      margin-right: 14px;
-      border-right: 1px solid var(--line);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .gr-items { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; align-items: center; }
-    .gr-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      font-size: 12px;
-      color: #1e3358;
-      line-height: 1.4;
-      font-weight: 550;
-      max-width: 190px;
-    }
-
     /* ── EMPTY STATE ───────────────────────── */
     .empty {
       padding: 18px;
@@ -645,7 +618,7 @@ DASHBOARD_HTML = """
       border: 1px solid var(--line);
       border-radius: 8px;
       overflow: hidden;
-      max-height: 520px;
+      max-height: 640px;
       overflow-y: auto;
     }
     .sim-msg {
@@ -672,8 +645,128 @@ DASHBOARD_HTML = """
     .sim-msg-who { font-size: 10.5px; font-weight: 700; color: var(--muted); margin-bottom: 3px; }
     .sim-msg-text { font-size: 12.5px; color: var(--ink); white-space: pre-wrap; line-height: 1.5; }
     .sim-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+    .sim-quickfills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .sim-quickfill-btn {
+      border:1px solid var(--line);
+      background:var(--surface-soft);
+      color:var(--ink-mid);
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+      transition:border-color .13s, color .13s, background .13s;
+    }
+    .sim-quickfill-btn:hover,
+    .sim-quickfill-btn:focus-visible {
+      border-color:var(--blue);
+      color:var(--blue-dark);
+      background:var(--blue-soft);
+      outline:none;
+    }
+    .sim-quickfill-btn:disabled {
+      cursor:not-allowed;
+      opacity:.6;
+    }
+    .sim-quickfill-btn-danger {
+      border-color:#fca5a5;
+      background:var(--red-soft);
+      color:#9f1239;
+    }
+    .sim-quickfill-btn-danger:hover,
+    .sim-quickfill-btn-danger:focus-visible {
+      border-color:#ef4444;
+      color:#7f1d1d;
+      background:#fecaca;
+    }
     .sim-empty { padding: 32px; text-align: center; color: var(--muted); font-size: 12.5px; }
     .sim-status { font-size: 12px; color: var(--muted); min-height: 20px; margin-top: 6px; }
+    .sim-corr-status { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .sim-corr-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sim-corr-kpi {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-soft);
+      padding: 8px 9px;
+    }
+    .sim-corr-kpi .lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .sim-corr-kpi .val {
+      margin-top: 2px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .sim-corr-subhd {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .sim-corr-list {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      min-height: 92px;
+      max-height: 170px;
+      overflow-y: auto;
+    }
+    .sim-corr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: 11.5px;
+      color: var(--ink-mid);
+    }
+    .sim-corr-row:last-child { border-bottom: 0; }
+    .sim-corr-feed {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      max-height: 210px;
+      overflow-y: auto;
+    }
+    .sim-corr-item {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sim-corr-item:last-child { border-bottom: 0; }
+    .sim-corr-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    .sim-corr-item-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .sim-corr-item-text {
+      font-size: 12px;
+      line-height: 1.42;
+      color: var(--ink);
+      white-space: pre-wrap;
+    }
+    .sim-corr-item-trigger {
+      margin-top: 4px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
     .judge-toggle {
       display: flex; align-items: center; gap: 8px;
       padding: 9px 10px; border: 1px solid var(--line);
@@ -682,8 +775,10 @@ DASHBOARD_HTML = """
     }
     .judge-toggle input { width: 16px; height: 16px; accent-color: var(--blue); }
     .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 9px; }
-    .comparison-panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px; }
-    .comparison-panel.blocked { background: var(--gray-soft); color: var(--muted); }
+    .comparison-panel { border: 1px solid var(--line); border-left: 4px solid transparent; border-radius: 8px; background: var(--surface); padding: 10px; }
+    .comparison-panel.decision-allow { border-left-color: #86efac; background: #f8fffb; }
+    .comparison-panel.decision-review { border-left-color: #facc15; background: #fffdf5; }
+    .comparison-panel.decision-block { border-left-color: #fca5a5; background: #fff6f6; }
     .comparison-title { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
     .comparison-body { font-size: 12px; white-space: pre-wrap; color: var(--ink); line-height: 1.45; }
     .comparison-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
@@ -712,6 +807,7 @@ DASHBOARD_HTML = """
       .fact-grid { grid-template-columns: repeat(2, 1fr); }
       .cfg-grid { grid-template-columns: 1fr; }
       .comparison-grid { grid-template-columns: 1fr; }
+      .sim-corr-kpis { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
       .workspace { padding: 14px; }
@@ -730,7 +826,7 @@ DASHBOARD_HTML = """
       <div class="brand-mark">T</div>
       <div class="brand-text">
         <strong>TENACIOUS</strong>
-        <small>Conversion Engine</small>
+        <small>Sales Pipeline Agent</small>
       </div>
     </div>
 
@@ -743,12 +839,12 @@ DASHBOARD_HTML = """
       <a href="#meetings"  data-page="meetings" ><span class="nav-ic">ME</span>Meetings</a>
     </nav>
 
-    <div class="nav-section">Testing</div>
+    <div class="nav-section">Simulation</div>
     <nav class="nav">
       <a href="#simulator" data-page="simulator"><span class="nav-ic">&#9654;</span>Simulator</a>
     </nav>
 
-    <div class="nav-section">Ops</div>
+    <div class="nav-section">Operations</div>
     <nav class="nav">
       <a href="#crm"      data-page="crm"     ><span class="nav-ic">CR</span>CRM</a>
       <a href="#traces"   data-page="traces"  ><span class="nav-ic">TR</span>Traces</a>
@@ -759,7 +855,6 @@ DASHBOARD_HTML = """
       <div class="util-links">
         <a class="util-link" href="/docs">API Docs</a>
         <a class="util-link" href="/health">Health</a>
-        <a class="util-link" href="/tools/status">Tools JSON</a>
       </div>
       <div class="team-row">
         <div class="avatar">TS</div>
@@ -778,12 +873,12 @@ DASHBOARD_HTML = """
     <section class="page" id="page-overview">
       <div class="topbar">
         <div class="page-title">
-          <h1>Conversion Engine</h1>
-          <p>Email-first research, qualification, scheduling, CRM sync, and trace review.</p>
+          <h1>Tenacious Sales Pipeline Agent</h1>
+          <p>Manage prospect research, outreach, scheduling, CRM sync, and policy reviews in one place.</p>
         </div>
         <div class="actions">
-          <a class="btn" id="export-brief" href="/dashboard/state">&#8681; Export Brief</a>
-          <a class="btn" id="hubspot-link" href="/tools/status">HS Open HubSpot</a>
+          <a class="btn" id="export-brief" href="/dashboard/state">&#8681; Export State</a>
+          <a class="btn" id="hubspot-link" href="/tools/status">HubSpot</a>
           <button class="btn btn-primary" id="run-demo-button">&#9654; Run Demo</button>
         </div>
       </div>
@@ -791,16 +886,12 @@ DASHBOARD_HTML = """
       <!-- KPI ROW -->
       <div class="kpi-row">
         <div class="kpi">
-          <div><div class="kpi-label">Prospects</div><div class="kpi-value" id="kpi-prospects">—</div></div>
+          <div><div class="kpi-label">Prospects</div><div class="kpi-value" id="kpi-prospects">-</div></div>
           <div class="kpi-icon">PR</div>
         </div>
         <div class="kpi">
-          <div><div class="kpi-label">Trace Events</div><div class="kpi-value" id="kpi-traces">—</div></div>
+          <div><div class="kpi-label">Trace Events</div><div class="kpi-value" id="kpi-traces">-</div></div>
           <div class="kpi-icon">TR</div>
-        </div>
-        <div class="kpi">
-          <div><div class="kpi-label">Channel</div><div class="kpi-value sm">Email</div></div>
-          <div class="kpi-icon">EM</div>
         </div>
         <div class="kpi">
           <div><div class="kpi-label">Outbound Mode</div><div class="kpi-value sm" id="kpi-mode">Preview</div></div>
@@ -820,7 +911,7 @@ DASHBOARD_HTML = """
       <div class="g2 mb">
         <!-- 1. Create Brief -->
         <div class="card">
-          <div class="card-hd"><div class="card-title"><span class="card-icon">BR</span>1. Create Prospect Brief</div></div>
+          <div class="card-hd"><div class="card-title"><span class="card-icon">BR</span>New Prospect</div></div>
           <div class="card-body">
             <form id="prospect-form" class="form-grid">
               <div class="form-field">
@@ -835,7 +926,7 @@ DASHBOARD_HTML = """
                 <div class="form-field"><label class="form-label">Email</label><input name="contact_email" type="email" placeholder="jordan@northstarlabs.ai" /></div>
                 <div class="form-field"><label class="form-label">Phone</label><input name="contact_phone" placeholder="+254700000000" /></div>
               </div>
-              <button class="btn btn-primary" id="submit-button" type="submit" style="width:100%;justify-content:center">&#9654; Run Full Toolchain</button>
+              <button class="btn btn-primary" id="submit-button" type="submit" style="width:100%;justify-content:center">&#9654; Generate Brief</button>
               <div class="status-txt" id="status"></div>
             </form>
           </div>
@@ -844,7 +935,7 @@ DASHBOARD_HTML = """
         <!-- 2. Latest Flow -->
         <div class="card">
           <div class="card-hd">
-            <div class="card-title"><span class="card-icon">FL</span>2. Latest Flow</div>
+            <div class="card-title"><span class="card-icon">FL</span>Current Activity</div>
             <span class="badge s-nil" id="latest-event-badge">No recent event</span>
           </div>
           <div id="latest-flow-body">
@@ -855,28 +946,28 @@ DASHBOARD_HTML = """
 
       <!-- Intelligence heading -->
       <div class="sec-hd">
-        <div><h2>Intelligence</h2><p>Prospect snapshot · hiring signals · bench fit · competitor gap · outreach draft.</p></div>
+        <div><h2>Research Summary</h2><p>Prospect fit, signal quality, delivery context, and draft readiness.</p></div>
         <span class="badge s-info" id="selected-trace">Trace pending</span>
       </div>
 
       <!-- INTELLIGENCE GRID -->
-      <div class="g5 mb" id="intelligence-grid">
-        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">A</span>Prospect Snapshot</div><div class="empty">Run toolchain.</div></div>
-        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">B</span>Hiring Signals</div><div class="empty">Run toolchain.</div></div>
-        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">C</span>Bench Match</div><div class="empty">Run toolchain.</div></div>
-        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">D</span>Competitor Gap</div><div class="empty">Run toolchain.</div></div>
-        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">E</span>Outreach Draft</div><div class="empty">Run toolchain.</div></div>
+      <div class="intelligence-grid mb" id="intelligence-grid">
+        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">PR</span>Prospect Snapshot</div><div class="empty">Run the pipeline to load data.</div></div>
+        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">SI</span>Hiring Signals</div><div class="empty">Run the pipeline to load data.</div></div>
+        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">BM</span>Bench Match</div><div class="empty">Run the pipeline to load data.</div></div>
+        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">CG</span>Competitor Gap</div><div class="empty">Run the pipeline to load data.</div></div>
+        <div class="card card-pad"><div class="card-title mb" style="margin-bottom:9px"><span class="card-icon">EM</span>Outreach Draft</div><div class="empty">Run the pipeline to load data.</div></div>
       </div>
 
       <!-- Operational heading -->
       <div class="sec-hd">
-        <div><h2>Operational Evidence</h2><p>Toolchain status · prospects · trace events · generated artifacts.</p></div>
+        <div><h2>Pipeline Snapshot</h2><p>Provider readiness, saved prospects, recent events, and generated files.</p></div>
       </div>
 
       <!-- ROW: Toolchain + Prospects + Traces -->
       <div class="g3 mb">
         <div class="card">
-          <div class="card-hd"><div class="card-title"><span class="card-icon">TL</span>Toolchain Results</div></div>
+          <div class="card-hd"><div class="card-title"><span class="card-icon">TL</span>Provider Status</div></div>
           <div class="card-body"><div id="tool-statuses" class="tool-grid"><div class="empty">Loading…</div></div></div>
         </div>
         <div class="card">
@@ -888,7 +979,7 @@ DASHBOARD_HTML = """
         </div>
         <div class="card">
           <div class="card-hd">
-            <div class="card-title"><span class="card-icon">RT</span>Recent Traces</div>
+            <div class="card-title"><span class="card-icon">RT</span>Recent Events</div>
             <a class="btn btn-sm" href="#traces" data-page="traces">View all</a>
           </div>
           <div class="card-body" style="padding-top:8px"><div id="recent-traces"><div class="empty">No trace events.</div></div></div>
@@ -897,19 +988,8 @@ DASHBOARD_HTML = """
 
       <!-- Artifacts -->
       <div class="card mb">
-        <div class="card-hd" style="padding-bottom:12px"><div class="card-title"><span class="card-icon">AR</span>Latest Artifacts</div></div>
+        <div class="card-hd" style="padding-bottom:12px"><div class="card-title"><span class="card-icon">AR</span>Generated Files</div></div>
         <div class="card-body" style="padding-top:0"><div id="latest-artifacts" class="art-grid"><div class="empty">No artifacts yet.</div></div></div>
-      </div>
-
-      <!-- Guardrails -->
-      <div class="gr-strip">
-        <div class="gr-label"><span class="card-icon">GR</span>Guardrails</div>
-        <div class="gr-items">
-          <div class="gr-item"><span class="badge s-info">&#10003;</span>Do not promise staffing capacity without bench confirmation.</div>
-          <div class="gr-item"><span class="badge s-info">&#10003;</span>Do not frame outreach around unobserved leadership transitions.</div>
-          <div class="gr-item"><span class="badge s-info">&#10003;</span>Respect quiet hours &amp; outreach limits.</div>
-          <div class="gr-item"><span class="badge s-info">i</span>AI outputs are suggestions — review before sending.</div>
-        </div>
       </div>
     </section><!-- /overview -->
 
@@ -917,7 +997,7 @@ DASHBOARD_HTML = """
     <!-- ████████████  PROSPECTS PAGE  ████████████ -->
     <section class="page" id="page-prospects" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Prospects</h1><p>Lead research pipeline — qualification, segmentation, and brief links.</p></div>
+        <div class="page-title"><h1>Prospects</h1><p>Qualified accounts, segmentation, and saved research briefs.</p></div>
         <div class="actions"><button class="btn" id="prospects-refresh">&#8635; Refresh</button></div>
       </div>
 
@@ -925,7 +1005,7 @@ DASHBOARD_HTML = """
 
       <div class="card">
         <div class="card-hd">
-          <div class="card-title"><span class="card-icon">PR</span>All Prospects</div>
+          <div class="card-title"><span class="card-icon">PR</span>Prospect Pipeline</div>
           <input id="prospects-search" placeholder="Search company or segment…" style="width:200px;height:30px;font-size:12px" />
         </div>
         <div class="card-body" style="padding-top:8px">
@@ -948,29 +1028,29 @@ DASHBOARD_HTML = """
     <!-- ████████████  OUTREACH PAGE  ████████████ -->
     <section class="page" id="page-outreach" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Outreach</h1><p>Email drafts, SMS handoff, reply management, and provider status.</p></div>
+        <div class="page-title"><h1>Outreach</h1><p>Drafts, reply handling, channel delivery status, and recent reply activity.</p></div>
       </div>
 
       <div class="g3 mb">
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">EM</span>Email Channel</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">EM</span>Email</div>
           <div class="kv" id="out-email-kv"></div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">SM</span>SMS Handoff</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">SM</span>SMS</div>
           <div class="kv" id="out-sms-kv"></div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CA</span>Scheduling</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CA</span>Calendar</div>
           <div class="kv" id="out-cal-kv"></div>
         </div>
       </div>
 
-      <div class="sec-hd"><div><h2>Latest Outreach Draft</h2><p>Current draft / live email for the most recent prospect.</p></div></div>
+      <div class="sec-hd"><div><h2>Current Draft</h2><p>Latest outbound email for the active prospect.</p></div></div>
       <div class="card mb" id="out-draft-card"><div class="card-body"><div class="empty">No outreach draft yet.</div></div></div>
 
       <!-- Simulate Reply panel -->
-      <div class="sec-hd"><div><h2>Simulate Inbound Reply</h2><p>Test how the conversation engine handles different prospect reply types.</p></div></div>
+      <div class="sec-hd"><div><h2>Reply Testing</h2><p>Run reply scenarios and review delivery, Qwen 2.5 3B Judge (Week 11), and Digital Courtroom (Week 2) outcomes.</p></div></div>
       <div class="card mb">
         <div class="card-body">
           <form id="reply-sim-form" class="form-grid">
@@ -999,6 +1079,21 @@ DASHBOARD_HTML = """
               <button type="button" class="btn btn-sm" id="qf-normal">Normal reply</button>
               <button type="button" class="btn btn-sm" id="qf-opt-out">Opt-out</button>
             </div>
+            <div class="brow" style="gap:6px;margin-top:2px;flex-wrap:wrap">
+              <span style="font-size:12px;font-weight:600;color:var(--muted);align-self:center">Governance scenarios:</span>
+              <button type="button" class="btn btn-sm" id="qf-legal-dpa">Legal/DPA request</button>
+              <button type="button" class="btn btn-sm" id="qf-custom-volume-pricing">Custom volume pricing</button>
+              <button type="button" class="btn btn-sm" id="qf-urgent-discount-pressure">Urgent discount pressure</button>
+              <button type="button" class="btn btn-sm" id="qf-impossible-capacity-ask">Impossible capacity ask</button>
+              <button type="button" class="btn btn-sm" id="qf-neutral-overview-request">Neutral overview request</button>
+            </div>
+            <div class="brow" style="gap:6px;margin-top:2px;flex-wrap:wrap">
+              <span style="font-size:12px;font-weight:600;color:var(--muted);align-self:center">Hard fail (block):</span>
+              <button type="button" class="btn btn-sm btn-danger" id="qf-block-opt-out">Hard opt-out / stop contact</button>
+              <button type="button" class="btn btn-sm btn-danger" id="qf-block-unsub-confirm">Unsubscribe confirmation route</button>
+              <button type="button" class="btn btn-sm btn-danger" id="qf-block-guaranteed-pricing">Guaranteed discount + savings demand</button>
+              <button type="button" class="btn btn-sm btn-danger" id="qf-block-fixed-capacity-pricing">Fixed large team at junior pricing</button>
+            </div>
             <div class="form-field">
               <label class="form-label">Message Body</label>
               <textarea id="reply-body" rows="3" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font:13px/1.5 inherit;color:var(--ink);background:var(--surface);resize:vertical" placeholder="Hi, thanks for reaching out. I'd like to schedule a call…"></textarea>
@@ -1017,7 +1112,7 @@ DASHBOARD_HTML = """
         </div>
       </div>
 
-      <div class="sec-hd"><div><h2>Inbound Reply Events</h2><p>Reply type classification and conversation decisions.</p></div></div>
+      <div class="sec-hd"><div><h2>Recent Reply Events</h2><p>Recorded reply types, delivery path, and trace context.</p></div></div>
       <div class="card">
         <div class="card-body">
           <div class="tbl-wrap">
@@ -1034,28 +1129,21 @@ DASHBOARD_HTML = """
     <!-- ████████████  SIGNALS PAGE  ████████████ -->
     <section class="page" id="page-signals" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Signals</h1><p>Public evidence quality, enrichment sources, and hiring intelligence.</p></div>
-      </div>
-
-      <div class="brow mb">
-        <span class="badge s-info">Crunchbase</span>
-        <span class="badge s-info">Job Posts</span>
-        <span class="badge s-info">layoffs.fyi</span>
-        <span class="badge s-info">Leadership</span>
+        <div class="page-title"><h1>Signals</h1><p>Public evidence quality, hiring activity, and confidence gaps.</p></div>
       </div>
 
       <div class="g2">
         <div class="card">
           <div class="card-hd">
-            <div class="card-title"><span class="card-icon">SI</span>Latest Signal Brief</div>
+            <div class="card-title"><span class="card-icon">SI</span>Signal Summary</div>
             <span class="badge s-nil" id="sig-company-badge">No prospect</span>
           </div>
           <div class="card-body"><div id="sig-list" class="sig-list"><div class="empty">Run the toolchain to generate signal data.</div></div></div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">AI</span>AI Maturity &amp; Evidence</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">AI</span>Evidence Quality</div>
           <div class="kv mb" id="sig-meta-kv"></div>
-          <div class="card-title" style="margin-bottom:7px;margin-top:12px">Evidence Gaps</div>
+          <div class="card-title" style="margin-bottom:7px;margin-top:12px">Gaps to Review</div>
           <div id="evidence-gaps"><div class="empty">No gaps reported.</div></div>
         </div>
       </div>
@@ -1065,20 +1153,20 @@ DASHBOARD_HTML = """
     <!-- ████████████  MEETINGS PAGE  ████████████ -->
     <section class="page" id="page-meetings" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Meetings</h1><p>Cal.com booking links, discovery call briefs, and calendar webhook status.</p></div>
+        <div class="page-title"><h1>Meetings</h1><p>Booking status, discovery links, and call context.</p></div>
       </div>
 
       <div class="g3">
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CA</span>Cal.com Status</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CA</span>Scheduling Status</div>
           <div class="kv" id="mtg-cal-kv"></div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">BK</span>Booking Summary</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">BK</span>Booking Status</div>
           <div class="kv" id="mtg-booking-kv"></div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CB</span>Context Brief</div>
+          <div class="card-title" style="margin-bottom:10px"><span class="card-icon">CB</span>Call Brief</div>
           <div id="mtg-ctx-brief"><div class="empty">No context brief yet.</div></div>
         </div>
       </div>
@@ -1088,7 +1176,7 @@ DASHBOARD_HTML = """
     <!-- ████████████  CRM PAGE  ████████████ -->
     <section class="page" id="page-crm" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>CRM</h1><p>HubSpot contact sync, field completeness, and lifecycle stage tracking.</p></div>
+        <div class="page-title"><h1>CRM</h1><p>Contact sync, completeness, and recent updates.</p></div>
         <div class="actions"><a class="btn" id="crm-hubspot-link" href="/tools/status">Open HubSpot &#8599;</a></div>
       </div>
 
@@ -1102,14 +1190,14 @@ DASHBOARD_HTML = """
         </div>
         <div class="card">
           <div class="card-hd">
-            <div class="card-title"><span class="card-icon">FC</span>Field Completeness</div>
-            <span class="badge s-nil" id="crm-score-badge">—</span>
+            <div class="card-title"><span class="card-icon">FC</span>Data Completeness</div>
+            <span class="badge s-nil" id="crm-score-badge">-</span>
           </div>
           <div class="card-body"><div id="crm-checklist" class="cklist"><div class="empty">No CRM data yet.</div></div></div>
         </div>
       </div>
 
-      <div class="sec-hd"><div><h2>CRM Activity Log</h2><p>Field writes, sync events, and custom property updates.</p></div></div>
+      <div class="sec-hd"><div><h2>Recent CRM Activity</h2><p>Field writes, sync events, and property updates.</p></div></div>
       <div class="card">
         <div class="card-body">
           <div class="tbl-wrap">
@@ -1126,7 +1214,7 @@ DASHBOARD_HTML = """
     <!-- ████████████  TRACES PAGE  ████████████ -->
     <section class="page" id="page-traces" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Traces</h1><p>Execution timeline, tool steps, event sequences, and Langfuse observability.</p></div>
+        <div class="page-title"><h1>Traces</h1><p>Event timeline, review logs, and trace links.</p></div>
         <div class="actions">
           <select id="traces-filter-type">
             <option value="">All event types</option>
@@ -1139,15 +1227,13 @@ DASHBOARD_HTML = """
         </div>
       </div>
 
-      <div class="brow mb" id="trace-chips"></div>
-
       <div class="g2" style="align-items:start">
         <div class="card">
           <div class="card-hd"><div class="card-title"><span class="card-icon">TL</span>Event Timeline</div></div>
           <div class="card-body"><div id="traces-timeline" class="tl"><div class="empty">No trace events yet.</div></div></div>
         </div>
         <div class="card">
-          <div class="card-hd"><div class="card-title"><span class="card-icon">LG</span>Event Log</div></div>
+          <div class="card-hd"><div class="card-title"><span class="card-icon">LG</span>Recent Events</div></div>
           <div class="card-body" style="padding-top:8px">
             <div class="tbl-wrap">
               <table>
@@ -1161,9 +1247,15 @@ DASHBOARD_HTML = """
           </div>
         </div>
       </div>
-      <div class="card mt">
-        <div class="card-hd"><div class="card-title"><span class="card-icon">W11</span>Week 10 vs Week 11 Comparison Reviews</div></div>
-        <div class="card-body"><div id="comparison-review-list"><div class="empty">No comparison reviews yet.</div></div></div>
+      <div class="g2 mt" style="align-items:start">
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><span class="card-icon">W11</span>Qwen 2.5 3B Judge Reviews (Week 11)</div></div>
+          <div class="card-body"><div id="comparison-review-list"><div class="empty">No comparison reviews yet.</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><span class="card-icon">W2</span>Governance Reviews</div></div>
+          <div class="card-body"><div id="governance-review-list"><div class="empty">No governance reviews yet.</div></div></div>
+        </div>
       </div>
     </section><!-- /traces -->
 
@@ -1171,7 +1263,7 @@ DASHBOARD_HTML = """
     <!-- ████████████  SETTINGS PAGE  ████████████ -->
     <section class="page" id="page-settings" hidden>
       <div class="topbar">
-        <div class="page-title"><h1>Settings</h1><p>Provider configuration, guardrails, kill switch, and environment status.</p></div>
+        <div class="page-title"><h1>Settings</h1><p>Mode, runtime guardrails, providers, and environment health.</p></div>
       </div>
 
       <div class="g3 mb">
@@ -1184,37 +1276,46 @@ DASHBOARD_HTML = """
           </div>
         </div>
         <div class="card card-pad">
-          <div class="card-title" style="margin-bottom:9px"><span class="card-icon">BN</span>&#964;&#178;-Bench</div>
+          <div class="card-title" style="margin-bottom:9px"><span class="card-icon">BN</span>Evaluation Bench</div>
           <div class="kv">
-            <div class="kvr"><span class="kk">Status</span><span class="kv-val" id="settings-bench">—</span></div>
+            <div class="kvr"><span class="kk">Status</span><span class="kv-val" id="settings-bench">-</span></div>
             <div class="kvr"><span class="kk">Mode</span><span class="kv-val">Evaluation</span></div>
           </div>
         </div>
         <div class="card card-pad">
           <div class="card-title" style="margin-bottom:9px"><span class="card-icon">HE</span>Environment</div>
           <div class="kv">
-            <div class="kvr"><span class="kk">API Health</span><span class="kv-val" id="settings-health">—</span></div>
+            <div class="kvr"><span class="kk">API Health</span><span class="kv-val" id="settings-health">-</span></div>
             <div class="kvr"><span class="kk">Seed Materials</span><span class="badge s-ok">Loaded</span></div>
           </div>
         </div>
       </div>
 
-      <div class="card card-pad mb">
-        <div class="card-title" style="margin-bottom:9px"><span class="card-icon">W11</span>Week 11 Judge Runtime</div>
-        <div class="kv" id="settings-judge-runtime">
-          <div class="kvr"><span class="kk">Runtime Mode</span><span class="kv-val">Loading…</span></div>
+      <div class="g2 mb">
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:9px"><span class="card-icon">W11</span>Qwen 2.5 3B Judge Runtime (Week 11)</div>
+          <div class="kv" id="settings-judge-runtime">
+            <div class="kvr"><span class="kk">Runtime Mode</span><span class="kv-val">Loading…</span></div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:9px"><span class="card-icon">W2</span>Digital Courtroom Runtime (Week 2)</div>
+          <div class="kv" id="settings-governance-runtime">
+            <div class="kvr"><span class="kk">Governance</span><span class="kv-val">Loading…</span></div>
+          </div>
         </div>
       </div>
 
-      <div class="sec-hd"><div><h2>Provider Configuration</h2><p>Tool readiness and integration status.</p></div></div>
+      <div class="sec-hd"><div><h2>Connected Providers</h2><p>Tool readiness and integration status.</p></div></div>
       <div class="cfg-grid mb" id="settings-providers"><div class="empty" style="grid-column:span 2">Loading…</div></div>
 
-      <div class="sec-hd"><div><h2>Active Guardrails</h2><p>Policy rules enforced at outreach time.</p></div></div>
+      <div class="sec-hd"><div><h2>Live Guardrails</h2><p>Policy rules enforced during outreach and reply handling.</p></div></div>
       <div class="card card-pad">
         <div class="cklist">
           <div class="ck-row"><span class="badge s-info">&#10003;</span>Do not promise staffing capacity without bench confirmation.</div>
           <div class="ck-row"><span class="badge s-info">&#10003;</span>Do not frame outreach around a leadership transition that was not observed in-window.</div>
-          <div class="ck-row"><span class="badge s-info">&#10003;</span>Do not overclaim weak signals — qualify confidence before use.</div>
+          <div class="ck-row"><span class="badge s-info">&#10003;</span>Do not overclaim weak signals - qualify confidence before use.</div>
           <div class="ck-row"><span class="badge s-info">&#10003;</span>Keep outbound content draft unless live sending is explicitly enabled.</div>
           <div class="ck-row"><span class="badge s-info">&#10003;</span>Respect quiet hours and outreach rate limits.</div>
         </div>
@@ -1227,93 +1328,132 @@ DASHBOARD_HTML = """
       <div class="topbar">
         <div class="page-title">
           <h1>Conversation Simulator</h1>
-          <p>Simulate prospect conversations and test all reply scenarios.</p>
+          <p>Run end-to-end conversation tests against the current guardrails.</p>
         </div>
         <div class="actions">
           <button class="btn" id="sim-reset-btn">&#8635; Reset</button>
         </div>
       </div>
 
-      <div class="g2 mb">
-
-        <!-- LEFT: Prospect Panel -->
-        <div>
-          <div class="card mb">
-            <div class="card-hd">
-              <div class="card-title"><span class="card-icon">PR</span>1. Select Prospect</div>
-              <span class="badge s-nil" id="sim-prospect-badge">Not created</span>
-            </div>
-            <div class="card-body">
-              <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Pick a real company from the snapshot database or enter custom details below.</p>
-              <div class="sim-co-header">
-                <span class="sim-co-count" id="sim-co-count">0 companies</span>
+      <div class="card mb">
+        <div class="card-hd">
+          <div class="card-title"><span class="card-icon">PR</span>Prospect Setup</div>
+          <span class="badge s-nil" id="sim-prospect-badge">Not created</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Pick an active company or create a custom prospect to start a conversation test.</p>
+          <div class="sim-co-header">
+            <span class="sim-co-count" id="sim-co-count">0 companies</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn btn-sm" id="sim-active-refresh-btn" type="button">Refresh Active Leads</button>
                 <input class="sim-co-search" id="sim-co-search" type="search" placeholder="Search company name…" oninput="simFilterCompanies(this.value)" />
               </div>
-              <div class="sim-companies" id="sim-co-grid">
-                <div class="empty" style="padding:10px">Loading companies…</div>
-              </div>
-
-              <form id="sim-form" style="display:grid;gap:7px">
-                <div class="g2" style="gap:7px">
-                  <div class="form-field"><label class="form-label">Company Name</label><input id="sim-company" name="company_name" required placeholder="ClearMint" /></div>
-                  <div class="form-field"><label class="form-label">Domain</label><input id="sim-domain" name="company_domain" placeholder="clearmint.io" /></div>
-                </div>
-                <div class="g2" style="gap:7px">
-                  <div class="form-field"><label class="form-label">Contact Name</label><input id="sim-contact" name="contact_name" placeholder="Amara Cole" /></div>
-                  <div class="form-field"><label class="form-label">Email (replies go here)</label><input id="sim-email" name="contact_email" type="email" placeholder="nurye.nigus.me@gmail.com" /></div>
-                </div>
-                <div class="form-field"><label class="form-label">Phone (for SMS)</label><input id="sim-phone" name="contact_phone" placeholder="+251929404324" /></div>
-                <button class="btn btn-primary" id="sim-run-btn" type="submit" style="width:100%;justify-content:center">&#9654; Create Prospect &amp; Send Initial Email</button>
-                <div class="sim-status" id="sim-run-status"></div>
-              </form>
-            </div>
+          </div>
+            <div class="sim-status" id="sim-active-status" style="margin-bottom:8px">Loading active leads…</div>
+          <div class="sim-companies" id="sim-co-grid">
+            <div class="empty" style="padding:10px">Loading companies…</div>
           </div>
 
-          <!-- Prospect summary (shown after creation) -->
-          <div class="card" id="sim-prospect-card" hidden>
-            <div class="card-hd"><div class="card-title"><span class="card-icon">&#10003;</span>Prospect Created</div></div>
-            <div class="card-body">
-              <div class="kv" id="sim-prospect-kv"></div>
+          <form id="sim-form" style="display:grid;gap:7px">
+            <div class="g2" style="gap:7px">
+              <div class="form-field"><label class="form-label">Company Name</label><input id="sim-company" name="company_name" required placeholder="ClearMint" /></div>
+              <div class="form-field"><label class="form-label">Domain</label><input id="sim-domain" name="company_domain" placeholder="clearmint.io" /></div>
+            </div>
+            <div class="g2" style="gap:7px">
+              <div class="form-field"><label class="form-label">Contact Name</label><input id="sim-contact" name="contact_name" placeholder="Amara Cole" /></div>
+              <div class="form-field"><label class="form-label">Reply Email</label><input id="sim-email" name="contact_email" type="email" placeholder="nurye.nigus.me@gmail.com" /></div>
+            </div>
+            <div class="g2" style="gap:7px">
+              <div class="form-field"><label class="form-label">Phone</label><input id="sim-phone" name="contact_phone" placeholder="+251929404324" /></div>
+              <div class="form-field"><label class="form-label">Action</label><button class="btn btn-primary" id="sim-run-btn" type="submit" style="width:100%;justify-content:center;margin-top:0">&#9654; Start Prospect and Send Initial Email</button></div>
+            </div>
+            <div class="sim-status" id="sim-run-status"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mb" id="sim-prospect-card" hidden>
+        <div class="card-hd"><div class="card-title"><span class="card-icon">&#10003;</span>Prospect Summary</div></div>
+        <div class="card-body">
+          <div class="kv" id="sim-prospect-kv"></div>
+        </div>
+      </div>
+
+      <div class="card mb">
+        <div class="card-hd">
+          <div class="card-title"><span class="card-icon">CH</span>Conversation</div>
+          <span class="badge s-nil" id="sim-channel-badge">Waiting for prospect</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="sim-thread" id="sim-thread">
+            <div class="sim-empty">Create a prospect to start the conversation.</div>
+          </div>
+          <div id="sim-composer" style="display:none;padding:12px;border-top:1px solid var(--line)">
+            <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">
+              Prospect message
+            </div>
+            <div class="sim-quickfills" aria-label="Simulator quick-fill templates">
+              <button type="button" class="sim-quickfill-btn" data-sim-quick-fill="Can you send your DPA terms?">Legal/DPA request</button>
+              <button type="button" class="sim-quickfill-btn" data-sim-quick-fill="Can we discuss custom volume pricing across phases?">Custom volume pricing</button>
+              <button type="button" class="sim-quickfill-btn" data-sim-quick-fill="Give me your best discount right now and lock it today.">Urgent discount pressure</button>
+              <button type="button" class="sim-quickfill-btn" data-sim-quick-fill="Promise 12 senior engineers in 2 weeks at junior pricing">Impossible capacity ask</button>
+              <button type="button" class="sim-quickfill-btn" data-sim-quick-fill="Can you share a short overview of what you offer?">Neutral overview request</button>
+            </div>
+            <div class="sim-quickfills" aria-label="Simulator hard-fail templates" style="margin-top:-2px">
+              <button type="button" class="sim-quickfill-btn sim-quickfill-btn-danger" data-sim-quick-fill="Unsubscribe me now. Stop contacting me and do not reach out again.">Hard opt-out / stop contact</button>
+              <button type="button" class="sim-quickfill-btn sim-quickfill-btn-danger" data-sim-quick-fill="Please unsubscribe and confirm I am permanently removed from your outreach.">Unsubscribe confirmation route</button>
+              <button type="button" class="sim-quickfill-btn sim-quickfill-btn-danger" data-sim-quick-fill="I need guaranteed fixed pricing, a locked discount, and contractual savings guarantees before any call. If you cannot do this, do not contact me again.">Guaranteed discount + savings demand</button>
+              <button type="button" class="sim-quickfill-btn sim-quickfill-btn-danger" data-sim-quick-fill="Commit to 20 senior engineers in 10 days at junior rates with fixed monthly pricing and guaranteed outcomes. Otherwise stop contacting us.">Fixed large team at junior pricing</button>
+            </div>
+            <textarea id="sim-body-input"
+              rows="3"
+              style="width:100%;padding:9px 11px;border:1.5px solid var(--blue);border-radius:7px;font:13px/1.5 inherit;color:var(--ink);resize:vertical;outline:none"
+              placeholder="Type your prospect message - real agent reply + Qwen 2.5 3B judge review will be shown…"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button class="btn btn-primary" id="sim-send-btn" onclick="simSend()" style="flex-shrink:0" disabled>&#9654; Send Reply</button>
+              <span class="sim-status" id="sim-reply-status" style="margin-top:0"></span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- RIGHT: Sales Conversation Panel -->
-        <div>
-          <div class="card mb">
-            <div class="card-hd">
-              <div class="card-title"><span class="card-icon">CH</span>2. Sales Conversation</div>
-              <span class="badge s-nil" id="sim-channel-badge">Waiting for prospect</span>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><span class="card-icon">LR</span>Oracle Forge Learning Loop (Week 8-9)</div>
+          <button class="btn btn-sm" id="sim-corr-refresh-btn" type="button">Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="sim-corr-status" id="sim-corr-status">Select or create a prospect to load Oracle Forge correction history.</div>
+
+          <div class="sim-corr-kpis" id="sim-corr-kpis">
+            <div class="sim-corr-kpi"><div class="lbl">Total Corrections</div><div class="val" id="sim-corr-total">0</div></div>
+            <div class="sim-corr-kpi"><div class="lbl">Unique Recommendations</div><div class="val" id="sim-corr-unique">0</div></div>
+            <div class="sim-corr-kpi"><div class="lbl">Categories</div><div class="val" id="sim-corr-categories">0</div></div>
+            <div class="sim-corr-kpi"><div class="lbl">Last Update</div><div class="val" id="sim-corr-last">-</div></div>
+          </div>
+
+          <div class="g2" style="gap:10px">
+            <div>
+              <div class="sim-corr-subhd">By Category (Selected Prospect)</div>
+              <div class="sim-corr-list" id="sim-corr-category-list">
+                <div class="sim-corr-row"><span>No data yet</span><span class="badge s-nil">0</span></div>
+              </div>
             </div>
-            <div class="card-body">
-              <!-- Message composer — visible once prospect is created -->
-              <div id="sim-composer" style="display:none">
-                <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">
-                  Prospect message
-                </div>
-                <textarea id="sim-body-input"
-                  rows="3"
-                  style="width:100%;padding:9px 11px;border:1.5px solid var(--blue);border-radius:7px;font:13px/1.5 inherit;color:var(--ink);resize:vertical;outline:none"
-                  placeholder="Type your prospect message — real agent reply + Week 11 judge review will be shown…"></textarea>
-                <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-                  <button class="btn btn-primary" id="sim-send-btn" onclick="simSend()" style="flex-shrink:0" disabled>&#9654; Send Reply</button>
-                  <span class="sim-status" id="sim-reply-status" style="margin-top:0"></span>
-                </div>
+            <div>
+              <div class="sim-corr-subhd">By Prospect (Global)</div>
+              <div class="sim-corr-list" id="sim-corr-prospect-list">
+                <div class="sim-corr-row"><span>No data yet</span><span class="badge s-nil">0</span></div>
               </div>
             </div>
           </div>
 
-          <!-- Conversation thread -->
-          <div class="card">
-            <div class="card-hd"><div class="card-title"><span class="card-icon">TH</span>Conversation Thread</div></div>
-            <div class="card-body" style="padding:0">
-              <div class="sim-thread" id="sim-thread">
-                <div class="sim-empty">Create a prospect to start the conversation.</div>
-              </div>
+          <div class="sim-corr-subhd" style="margin-top:10px">Oracle Forge Corrections</div>
+          <div class="sim-corr-feed" id="sim-corr-feed">
+            <div class="sim-corr-item">
+              <div class="sim-corr-item-text">No correction entries loaded yet.</div>
             </div>
           </div>
         </div>
-
       </div>
     </section><!-- /simulator -->
 
@@ -1322,7 +1462,7 @@ DASHBOARD_HTML = """
 
 <script>
 // ── DATA STORE ──────────────────────────────────────
-let _state = null, _snap = null, _allTraces = [], _allProspects = [], _comparisonReviews = [];
+let _state = null, _snap = null, _allTraces = [], _allProspects = [], _comparisonReviews = [], _governanceReviews = [];
 
 // ── UTILITIES ───────────────────────────────────────
 const esc = v => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -1333,15 +1473,15 @@ function trunc(v, n = 80, fallback = "Not available") {
 }
 
 function fmt(v) {
-  if (!v) return "—";
+  if (!v) return "-";
   const d = new Date(v);
   return isNaN(d) ? String(v) : d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
-const pct = v => v != null ? Math.round(Number(v) * 100) + "%" : "—";
+const pct = v => v != null ? Math.round(Number(v) * 100) + "%" : "-";
 
 function titl(v) {
-  return String(v || "").replace(/_/g, " ").replace(/\\b\\w/g, c => c.toUpperCase()) || "—";
+  return String(v || "").replace(/_/g, " ").replace(/\\b\\w/g, c => c.toUpperCase()) || "-";
 }
 
 function tone(s) {
@@ -1426,8 +1566,8 @@ function extractBody(snap) {
 
 // ── OVERVIEW RENDERS ─────────────────────────────────
 function renderKpis() {
-  document.getElementById("kpi-prospects").textContent = _state?.total_prospects ?? "—";
-  document.getElementById("kpi-traces").textContent    = _state?.total_traces ?? "—";
+  document.getElementById("kpi-prospects").textContent = _state?.total_prospects ?? "-";
+  document.getElementById("kpi-traces").textContent    = _state?.total_traces ?? "-";
 }
 
 function renderToolStatuses() {
@@ -1467,7 +1607,7 @@ function renderLatestFlow(flow) {
         <div class="brow">
           ${bdg("Source-backed brief ready","s-ok")}
           ${bdg("Booking " + booking, tone(booking))}
-          ${bdg(flow.voice_handoff_ready ? "SMS handoff active" : "Voice pending", flow.voice_handoff_ready ? "s-info" : "s-warn")}
+          ${bdg(flow.voice_handoff_ready ? "Voice handoff ready" : "Voice pending", flow.voice_handoff_ready ? "s-info" : "s-warn")}
           ${bdg(crm, tone(crm))}
         </div>
         <div class="fact-grid">
@@ -1475,9 +1615,9 @@ function renderLatestFlow(flow) {
           <div class="fact"><div class="fact-lbl">Booking</div><div class="fact-val">${esc(titl(booking))}</div></div>
           <div class="fact"><div class="fact-lbl">CRM</div><div class="fact-val">${esc(crm)}</div></div>
           <div class="fact"><div class="fact-lbl">Voice</div><div class="fact-val">${esc(voice)}</div></div>
-          <div class="fact"><div class="fact-lbl">Prospect ID</div><div class="fact-val">${esc(trunc(flow.prospect_id || "—", 20))}</div></div>
+          <div class="fact"><div class="fact-lbl">Prospect ID</div><div class="fact-val">${esc(trunc(flow.prospect_id || "-", 20))}</div></div>
           <div class="fact"><div class="fact-lbl">Trace ID</div><div class="fact-val">${esc(trunc(traceId, 20))}</div></div>
-          <div class="fact"><div class="fact-lbl">Latest Event</div><div class="fact-val">${esc(flow.latest_event || "—")}</div></div>
+          <div class="fact"><div class="fact-lbl">Latest Event</div><div class="fact-val">${esc(flow.latest_event || "-")}</div></div>
           <div class="fact"><div class="fact-lbl">Mode</div><div class="fact-val">${esc(mode)}</div></div>
         </div>
       </div>
@@ -1496,8 +1636,15 @@ function renderIntelligence(snap) {
   const trEl = document.getElementById("selected-trace");
   if (!snap) {
     trEl.textContent = "Trace pending"; trEl.className = "badge s-info";
-    el.innerHTML = ["Prospect Snapshot","Hiring Signals","Bench Match","Competitor Gap","Outreach Draft"]
-      .map((t, i) => `<div class="card card-pad"><div class="card-title" style="margin-bottom:9px"><span class="card-icon">${"ABCDE"[i]}</span>${t}</div>${emp("Run the toolchain.")}</div>`).join("");
+    const emptyCards = [
+      ["PR", "Prospect Snapshot"],
+      ["SI", "Hiring Signals"],
+      ["BM", "Bench Match"],
+      ["CG", "Competitor Gap"],
+      ["EM", "Outreach Draft"],
+    ];
+    el.innerHTML = emptyCards
+      .map(([icon, title]) => `<div class="card card-pad"><div class="card-title" style="margin-bottom:9px"><span class="card-icon">${icon}</span>${title}</div>${emp("Run the pipeline to load data.")}</div>`).join("");
     return;
   }
 
@@ -1518,20 +1665,20 @@ function renderIntelligence(snap) {
 
   el.innerHTML = `
     <div class="card card-pad">
-      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">A</span>Prospect Snapshot</div>
+      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">PR</span>Prospect Snapshot</div>
       <div class="kv">
         ${kvr("Company", esc(p.company_name || "Not available"))}
-        ${kvr("Domain", esc(p.company_domain || "—"))}
-        ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "—"))}
+        ${kvr("Domain", esc(p.company_domain || "-"))}
+        ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "-"))}
         ${kvr("Confidence", pct(p.segment_confidence ?? brief.segment_confidence))}
-        ${kvr("AI Maturity", esc(String(p.ai_maturity_score ?? brief.ai_maturity_score ?? "—")))}
-        ${kvr("Employees", esc(String(snap.employee_count || "—")))}
+        ${kvr("AI Maturity", esc(String(p.ai_maturity_score ?? brief.ai_maturity_score ?? "-")))}
+        ${kvr("Employees", esc(String(snap.employee_count || "-")))}
       </div>
-      <div style="margin-top:7px;font-size:11px;color:var(--muted)">ID: ${esc(trunc(p.prospect_id || "—", 30))}</div>
+      <div style="margin-top:7px;font-size:11px;color:var(--muted)">ID: ${esc(trunc(p.prospect_id || "-", 30))}</div>
     </div>
 
     <div class="card card-pad">
-      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">B</span>Hiring Signals</div>
+      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">SI</span>Hiring Signals</div>
       <div class="sig-list">
         ${normSignals(snap).map(sig => `
           <div class="sig-row">
@@ -1546,9 +1693,9 @@ function renderIntelligence(snap) {
     </div>
 
     <div class="card card-pad">
-      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">C</span>Bench Match</div>
+      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">BM</span>Bench Match</div>
       <div class="brow" style="margin-bottom:9px">
-        ${bdg(bench.sufficient ? "Match sufficient" : "Gap — review needed", bench.sufficient ? "s-ok" : "s-warn")}
+        ${bdg(bench.sufficient ? "Match sufficient" : "Gap - review needed", bench.sufficient ? "s-ok" : "s-warn")}
         ${(stacks || []).map(s => bdg(s, "s-info")).join("")}
       </div>
       <div class="cap-list">
@@ -1565,7 +1712,7 @@ function renderIntelligence(snap) {
     </div>
 
     <div class="card card-pad">
-      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">D</span>Competitor Gap</div>
+      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">CG</span>Competitor Gap</div>
       <div class="crow" style="margin-bottom:8px">
         ${(gap.top_quartile_companies || []).slice(0, 3).map(c => `<span class="chip s-info">${esc(c)}</span>`).join("") || bdg("Comparison limited","s-nil")}
       </div>
@@ -1576,7 +1723,7 @@ function renderIntelligence(snap) {
     </div>
 
     <div class="card card-pad">
-      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">E</span>Outreach Draft</div>
+      <div class="card-title" style="margin-bottom:9px"><span class="card-icon">EM</span>Outreach Draft</div>
       <div class="email-wrap">
         <div class="email-meta">
           <div><strong>To:</strong> <span>${esc(p.contact_email || "Not available")}</span></div>
@@ -1604,10 +1751,10 @@ function renderRecentProspects(snaps) {
     <tbody>${rows.map(s => {
       const p = s.prospect || {};
       return `<tr>
-        <td><strong>${esc(p.company_name || "—")}</strong></td>
+        <td><strong>${esc(p.company_name || "-")}</strong></td>
         <td>${esc(trunc(p.primary_segment_label || titl(p.primary_segment), 22))}</td>
         <td>${pct(p.segment_confidence)}</td>
-        <td>${esc(String(p.ai_maturity_score ?? "—"))}</td>
+        <td>${esc(String(p.ai_maturity_score ?? "-"))}</td>
       </tr>`;
     }).join("")}</tbody></table>`;
 }
@@ -1618,8 +1765,8 @@ function renderRecentTraces(traces) {
   el.innerHTML = `<table>
     <thead><tr><th>Event</th><th>Prospect</th><th>Time</th></tr></thead>
     <tbody>${traces.slice(0, 5).map(t => `<tr>
-      <td><strong>${esc(t.event_type || "—")}</strong></td>
-      <td>${esc(t.company_name || t.prospect_id || "—")}</td>
+      <td><strong>${esc(t.event_type || "-")}</strong></td>
+      <td>${esc(t.company_name || t.prospect_id || "-")}</td>
       <td style="white-space:nowrap;font-size:11px">${esc(fmt(t.timestamp))}</td>
     </tr>`).join("")}</tbody></table>`;
 }
@@ -1685,13 +1832,13 @@ function renderProspectsTable(rows) {
     const p = s.prospect || {};
     const dataAttr = `data-company="${esc(p.company_name || "")}" data-domain="${esc(p.company_domain || "")}" data-contact="${esc(p.contact_name || "")}" data-email="${esc(p.contact_email || "")}" data-phone="${esc(p.contact_phone || "")}"`;
     return `<tr>
-      <td><strong>${esc(p.company_name || "—")}</strong><br><span style="font-size:11px;color:var(--muted)">${esc(p.company_domain || "")}</span></td>
-      <td>${esc(p.primary_segment_label || titl(p.primary_segment) || "—")}</td>
+      <td><strong>${esc(p.company_name || "-")}</strong><br><span style="font-size:11px;color:var(--muted)">${esc(p.company_domain || "")}</span></td>
+      <td>${esc(p.primary_segment_label || titl(p.primary_segment) || "-")}</td>
       <td>${pct(p.segment_confidence)}</td>
-      <td>${esc(String(p.ai_maturity_score ?? "—"))}</td>
+      <td>${esc(String(p.ai_maturity_score ?? "-"))}</td>
       <td>${bdg(p.status || "Active", tone(p.status || ""))}</td>
       <td style="font-size:11px;white-space:nowrap">${esc(fmt(p.updated_at))}</td>
-      <td>${p.prospect_id ? `<a class="btn btn-sm" href="/prospects/${esc(p.prospect_id)}">Brief &#8599;</a>` : "—"}</td>
+      <td>${p.prospect_id ? `<a class="btn btn-sm" href="/prospects/${esc(p.prospect_id)}">Brief &#8599;</a>` : "-"}</td>
       <td><button class="btn btn-sm rerun-btn" ${dataAttr}>&#9654; Re-run</button></td>
     </tr>`;
   }).join("");
@@ -1769,7 +1916,7 @@ function renderOutreachPage() {
         <div class="email-meta">
           <div><strong>To:</strong> <span>${esc(p.contact_email || "Not available")}</span></div>
           <div><strong>Subject:</strong> <span>${esc(extractSubject(_snap))}</span></div>
-          <div><strong>Company:</strong> <span>${esc(p.company_name || "—")}</span></div>
+          <div><strong>Company:</strong> <span>${esc(p.company_name || "-")}</span></div>
           <div class="brow" style="margin-top:4px">${bdg(dm, tone(dm))}${bdg(emailTool.label || "preview", "s-nil")}</div>
         </div>
         <div class="email-body" style="-webkit-line-clamp:6">${esc(extractBody(_snap))}</div>
@@ -1782,21 +1929,30 @@ function renderOutreachPage() {
   const replyEvts = (_state?.latest_interaction_events || []).filter(e => e.event_type?.includes("reply"));
   const tb = document.getElementById("out-replies-tbody");
   tb.innerHTML = replyEvts.length ? replyEvts.slice(0, 10).map(e => `<tr>
-    <td><strong>${esc(e.event_type || "—")}</strong></td>
-    <td>${esc(e.company_name || e.prospect_id || "—")}</td>
+    <td><strong>${esc(e.event_type || "-")}</strong></td>
+    <td>${esc(e.company_name || e.prospect_id || "-")}</td>
     <td>${bdg(e.reply_type || "Normal", "s-info")}</td>
-    <td>${esc(e.provider || "—")}</td>
+    <td>${esc(e.provider || "-")}</td>
     <td style="font-size:11px;white-space:nowrap">${esc(fmt(e.created_at))}</td>
-    <td style="font-size:11px">${esc(trunc(e.trace_id || "—", 18))}</td>
+    <td style="font-size:11px">${esc(trunc(e.trace_id || "-", 18))}</td>
   </tr>`).join("") : `<tr><td colspan="6">${emp("No reply events recorded.")}</td></tr>`;
 }
 
 // ── REPLY SIMULATOR ─────────────────────────────────
 const QUICK_FILLS = {
-  "qf-meeting": "Hi, thanks for reaching out — I'd like to schedule a discovery call. What times work next week?",
+  "qf-meeting": "Hi, thanks for reaching out - I'd like to schedule a discovery call. What times work next week?",
   "qf-pricing": "Interesting approach. Can you share pricing details and how you bill for the engineering capacity?",
   "qf-normal":  "Thanks for the email. I've forwarded it to our engineering lead. We'll circle back shortly.",
   "qf-opt-out": "Thanks but we're not looking at external vendors right now. Please remove me from your list.",
+  "qf-legal-dpa": "Can you send your DPA terms?",
+  "qf-custom-volume-pricing": "Can we discuss custom volume pricing across phases?",
+  "qf-urgent-discount-pressure": "Give me your best discount right now and lock it today.",
+  "qf-impossible-capacity-ask": "Promise 12 senior engineers in 2 weeks at junior pricing",
+  "qf-neutral-overview-request": "Can you share a short overview of what you offer?",
+  "qf-block-opt-out": "Unsubscribe me now. Stop contacting me and do not reach out again.",
+  "qf-block-unsub-confirm": "Please unsubscribe and confirm I am permanently removed from your outreach.",
+  "qf-block-guaranteed-pricing": "I need guaranteed fixed pricing, a locked discount, and contractual savings guarantees before any call. If you cannot do this, do not contact me again.",
+  "qf-block-fixed-capacity-pricing": "Commit to 20 senior engineers in 10 days at junior rates with fixed monthly pricing and guaranteed outcomes. Otherwise stop contacting us.",
 };
 
 Object.entries(QUICK_FILLS).forEach(([id, text]) => {
@@ -1827,15 +1983,15 @@ document.getElementById("reply-sim-form").addEventListener("submit", async e => 
     const r = await fetch("/conversations/reply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error(`Reply failed (${r.status}).`);
     const decision = await r.json();
-    statusEl.textContent = "Reply handled — decision below.";
+    statusEl.textContent = "Reply handled - decision below.";
     // Show decision
     const outEl = document.getElementById("reply-decision-out");
     const kvEl  = document.getElementById("reply-decision-kv");
     const draftEl = document.getElementById("reply-draft-preview");
     outEl.style.display = "block";
     kvEl.innerHTML = `
-      ${kvr("Next Action", bdg(decision.next_action || "—", tone(decision.next_action)))}
-      ${kvr("Channel", esc(decision.channel || "—"))}
+      ${kvr("Next Action", bdg(decision.next_action || "-", tone(decision.next_action)))}
+      ${kvr("Channel", esc(decision.channel || "-"))}
       ${kvr("Needs Human", decision.needs_human ? bdg("Yes","s-warn") : bdg("No","s-ok"))}
       ${decision.risk_flags?.length ? kvr("Risk Flags", esc(decision.risk_flags.join(", "))) : ""}`;
     draftEl.innerHTML = decision.reply_draft ? `
@@ -1854,11 +2010,11 @@ document.getElementById("reply-sim-form").addEventListener("submit", async e => 
 // Signals page
 function renderSignalsPage() {
   const snap = _snap;
-  const co = snap?.prospect?.company_name || "—";
-  document.getElementById("sig-company-badge").textContent = co === "—" ? "No prospect" : co;
+  const co = snap?.prospect?.company_name || "-";
+  document.getElementById("sig-company-badge").textContent = co === "-" ? "No prospect" : co;
   if (!snap) {
     document.getElementById("sig-list").innerHTML = emp("Run the toolchain to generate signal data.");
-    document.getElementById("sig-meta-kv").innerHTML = `${kvr("Prospect","—")}${kvr("AI Maturity","—")}${kvr("Segment","—")}${kvr("Confidence","—")}`;
+    document.getElementById("sig-meta-kv").innerHTML = `${kvr("Prospect","-")}${kvr("AI Maturity","-")}${kvr("Segment","-")}${kvr("Confidence","-")}`;
     return;
   }
   const brief = snap.hiring_signal_brief || {};
@@ -1870,9 +2026,9 @@ function renderSignalsPage() {
       ${bdg(confLabel(sig.confidence), confTone(sig.confidence))}
     </div>`).join("");
   document.getElementById("sig-meta-kv").innerHTML = `
-    ${kvr("Prospect", esc(p.company_name || "—"))}
-    ${kvr("AI Maturity Score", esc(String(p.ai_maturity_score ?? brief.ai_maturity_score ?? "—")))}
-    ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "—"))}
+    ${kvr("Prospect", esc(p.company_name || "-"))}
+    ${kvr("AI Maturity Score", esc(String(p.ai_maturity_score ?? brief.ai_maturity_score ?? "-")))}
+    ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "-"))}
     ${kvr("Confidence", pct(p.segment_confidence ?? brief.segment_confidence))}`;
   const gaps = brief.evidence_gaps || brief.missing_signals || [];
   document.getElementById("evidence-gaps").innerHTML = gaps.length
@@ -1890,7 +2046,7 @@ function renderMeetingsPage() {
     ${kvr("Provider", "Cal.com")}
     ${kvr("Booking", bdg(titl(flow?.booking_status || "Pending"), tone(flow?.booking_status)))}
     ${kvr("Webhook", bdg(titl(calTool.status || "Not configured"), tone(calTool.status)))}
-    ${kvr("Prospect", esc(trunc(flow?.company_name || _snap?.prospect?.company_name || "—", 22)))}`;
+    ${kvr("Prospect", esc(trunc(flow?.company_name || _snap?.prospect?.company_name || "-", 22)))}`;
   document.getElementById("mtg-booking-kv").innerHTML = `
     ${kvr("Status", bdg(titl(flow?.booking_status || "Pending"), tone(flow?.booking_status)))}
     ${kvr("Confirmed", esc(flow?.booking_status === "confirmed" ? "Yes" : "No"))}
@@ -1900,7 +2056,7 @@ function renderMeetingsPage() {
     ctxEl.innerHTML = `
       <div class="kv" style="margin-bottom:9px">
         ${kvr("Type", "Context Brief")}
-        ${kvr("Prospect", esc(trunc(_snap?.prospect?.company_name || "—", 22)))}
+        ${kvr("Prospect", esc(trunc(_snap?.prospect?.company_name || "-", 22)))}
         ${kvr("Status", bdg(ctxArt.exists ? "Ready" : "Pending", ctxArt.exists ? "s-ok" : "s-warn"))}
       </div>
       <a class="btn btn-sm" href="${esc(ctxArt.route)}">Open Context Brief &#8599;</a>`;
@@ -1918,12 +2074,12 @@ function renderCrmPage() {
   syncBadge.className = `badge ${synced ? "s-ok" : "s-nil"}`;
   const p = _snap?.prospect || {};
   document.getElementById("crm-contact-kv").innerHTML = `
-    ${kvr("Company", esc(p.company_name || "—"))}
-    ${kvr("Contact", esc(p.contact_name || "—"))}
-    ${kvr("Email", esc(p.contact_email || "—"))}
-    ${kvr("Phone", esc(p.contact_phone || "—"))}
+    ${kvr("Company", esc(p.company_name || "-"))}
+    ${kvr("Contact", esc(p.contact_name || "-"))}
+    ${kvr("Email", esc(p.contact_email || "-"))}
+    ${kvr("Phone", esc(p.contact_phone || "-"))}
     ${kvr("Lifecycle Stage", esc(p.lifecycle_stage || "Lead"))}
-    ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "—"))}
+    ${kvr("Segment", esc(p.primary_segment_label || titl(p.primary_segment) || "-"))}
     ${kvr("Last Activity", esc(fmt(p.updated_at)))}`;
   const fields = [
     ["Company Name", !!p.company_name], ["Contact Email", !!p.contact_email],
@@ -1940,9 +2096,9 @@ function renderCrmPage() {
     .filter(e => e.event_type && (e.event_type.includes("crm") || e.event_type.includes("hubspot")));
   const tb = document.getElementById("crm-activity-tbody");
   tb.innerHTML = evts.length ? evts.slice(0, 8).map(e => `<tr>
-    <td><strong>${esc(e.event_type || "—")}</strong></td>
-    <td>${esc(e.field || e.channel || "—")}</td>
-    <td>${esc(trunc(e.value || e.payload_summary || "—", 40))}</td>
+    <td><strong>${esc(e.event_type || "-")}</strong></td>
+    <td>${esc(e.field || e.channel || "-")}</td>
+    <td>${esc(trunc(e.value || e.payload_summary || "-", 40))}</td>
     <td style="white-space:nowrap;font-size:11px">${esc(fmt(e.created_at || e.timestamp))}</td>
     <td>${bdg("Logged", "s-ok")}</td>
   </tr>`).join("") : `<tr><td colspan="5">${emp("No CRM activity logged yet.")}</td></tr>`;
@@ -1955,11 +2111,15 @@ function renderTracesPage() {
   _allTraces = [...traces, ...evts].sort((a, b) => new Date(b.timestamp || b.created_at) - new Date(a.timestamp || a.created_at));
   const typeCount = {};
   _allTraces.forEach(t => { const k = t.event_type || "unknown"; typeCount[k] = (typeCount[k] || 0) + 1; });
-  document.getElementById("trace-chips").innerHTML = Object.entries(typeCount).slice(0, 6)
-    .map(([k, n]) => `<span class="badge s-info">${esc(k)} <strong>${n}</strong></span>`).join("");
+  const traceChips = document.getElementById("trace-chips");
+  if (traceChips) {
+    traceChips.innerHTML = Object.entries(typeCount).slice(0, 6)
+      .map(([k, n]) => `<span class="badge s-info">${esc(k)} <strong>${n}</strong></span>`).join("");
+  }
   renderTracesTable(_allTraces);
   renderTracesTimeline(_allTraces);
   renderComparisonReviews();
+  renderGovernanceReviews();
   const lf = getArtifact("langfuse");
   const lfRow = document.getElementById("langfuse-link-row");
   if (lf?.route) { lfRow.style.display = "block"; document.getElementById("langfuse-link").href = lf.route; }
@@ -1985,7 +2145,7 @@ function renderComparisonReviews() {
   if (!el) return;
   if (!_comparisonReviews.length) { el.innerHTML = emp("No comparison reviews yet."); return; }
   el.innerHTML = _comparisonReviews.slice(0, 8).map(r => `
-    <div class="comparison-panel ${r.final_decision === "block" ? "blocked" : ""}" style="margin-bottom:8px">
+    <div class="comparison-panel ${r.final_decision === "block" ? "decision-block" : r.final_decision === "allow" ? "decision-allow" : "decision-review"}" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
         <strong>${esc(r.company_name || r.prospect_id || "Comparison review")}</strong>
         ${bdg(String(r.judge_verdict || "needs_human_review").toUpperCase().replace(/_/g, " "), verdictTone(r.judge_verdict))}
@@ -1995,8 +2155,31 @@ function renderComparisonReviews() {
         ${bdg(finalDecisionLabel(r.final_decision), r.final_decision === "allow" ? "s-ok" : r.final_decision === "block" ? "s-err" : "s-warn")}
         ${bdg(titl(r.action_type), "s-nil")}
         ${bdg(titl(r.channel), "s-nil")}
+        ${r.governance_final_decision ? bdg("W2 " + finalDecisionLabel(r.governance_final_decision), r.governance_final_decision === "allow" ? "s-ok" : r.governance_final_decision === "block" ? "s-err" : "s-warn") : ""}
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin-top:5px">${esc(r.improvement_summary || r.judge_reason || "")}</div>
+    </div>
+  `).join("");
+}
+
+function renderGovernanceReviews() {
+  const el = document.getElementById("governance-review-list");
+  if (!el) return;
+  if (!_governanceReviews.length) { el.innerHTML = emp("No governance reviews yet."); return; }
+  el.innerHTML = _governanceReviews.slice(0, 8).map(r => `
+    <div class="comparison-panel ${r.final_decision === "block" ? "decision-block" : r.final_decision === "allow" ? "decision-allow" : "decision-review"}" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <strong>${esc(r.company_name || r.prospect_id || "Governance review")}</strong>
+        ${bdg(String(r.final_verdict || "needs_human_review").toUpperCase().replace(/_/g, " "), verdictTone(r.final_verdict))}
+      </div>
+      <div class="comparison-body" style="margin-top:5px">${esc(trunc(r.candidate_output || "", 180))}</div>
+      <div class="comparison-meta">
+        ${bdg(finalDecisionLabel(r.final_decision), r.final_decision === "allow" ? "s-ok" : r.final_decision === "block" ? "s-err" : "s-warn")}
+        ${bdg(titl(r.candidate_action_type), "s-nil")}
+        ${bdg(titl(r.candidate_channel), "s-nil")}
+        ${bdg("Score " + (r.overall_score ?? "-"), "s-info")}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:5px">${esc((r.remediation_plan || [""])[0] || r.dissent_summary || "")}</div>
     </div>
   `).join("");
 }
@@ -2005,10 +2188,10 @@ function renderTracesTable(rows) {
   const tb = document.getElementById("traces-tbody");
   if (!rows.length) { tb.innerHTML = `<tr><td colspan="5">${emp("No trace events yet.")}</td></tr>`; return; }
   tb.innerHTML = rows.slice(0, 20).map(t => `<tr>
-    <td><strong>${esc(t.event_type || "—")}</strong></td>
-    <td>${esc(t.company_name || t.prospect_id || "—")}</td>
-    <td style="font-size:11px">${esc(trunc(t.trace_id || "—", 18))}</td>
-    <td>${esc(t.channel || t.provider || "—")}</td>
+    <td><strong>${esc(t.event_type || "-")}</strong></td>
+    <td>${esc(t.company_name || t.prospect_id || "-")}</td>
+    <td style="font-size:11px">${esc(trunc(t.trace_id || "-", 18))}</td>
+    <td>${esc(t.channel || t.provider || "-")}</td>
     <td style="white-space:nowrap;font-size:11px">${esc(fmt(t.timestamp || t.created_at))}</td>
   </tr>`).join("");
 }
@@ -2020,7 +2203,7 @@ function renderTracesTimeline(rows) {
     <div class="tl-item">
       <div class="tl-dot"></div>
       <div class="tl-body">
-        <div class="tl-evt">${esc(t.event_type || "—")}</div>
+        <div class="tl-evt">${esc(t.event_type || "-")}</div>
         <div class="tl-txt">${esc(trunc(t.payload_summary || "", 70, ""))}</div>
         <div class="tl-meta">
           ${t.channel || t.provider ? bdg(t.channel || t.provider, "s-nil") : ""}
@@ -2060,7 +2243,7 @@ function renderJudgeRuntimePanel() {
     ${kvr("TENACIOUS_JUDGE_ENABLED", trueFalse(Boolean(rt.tenacious_judge_enabled)))}
     ${kvr("TENACIOUS_COMPARISON_MODE", trueFalse(Boolean(rt.tenacious_comparison_mode)))}
     ${kvr("TENACIOUS_COMPARISON_DRY_RUN", trueFalse(Boolean(rt.tenacious_comparison_dry_run)))}
-    ${kvr("adapter path", esc(rt.adapter_path || "—"))}
+    ${kvr("adapter path", esc(rt.adapter_path || "-"))}
     ${kvr("adapter path exists", yesNo(Boolean(rt.adapter_path_exists)))}
     ${kvr("required ML deps available", depBadges)}
     ${kvr("runtime mode", bdg(runtimeMode, runtimeMode === "real_model" ? "s-ok" : "s-warn"))}
@@ -2069,9 +2252,10 @@ function renderJudgeRuntimePanel() {
 
 function renderSettingsPage() {
   document.getElementById("settings-mode").textContent = document.getElementById("kpi-mode")?.textContent || "Preview";
-  document.getElementById("settings-health").textContent = document.getElementById("kpi-health")?.textContent || "—";
-  document.getElementById("settings-bench").textContent = document.getElementById("kpi-bench")?.textContent || "—";
+  document.getElementById("settings-health").textContent = document.getElementById("kpi-health")?.textContent || "-";
+  document.getElementById("settings-bench").textContent = document.getElementById("kpi-bench")?.textContent || "-";
   renderJudgeRuntimePanel();
+  renderGovernanceRuntimePanel();
   const tools = _state?.tool_statuses || [];
   const el = document.getElementById("settings-providers");
   if (!tools.length) { el.innerHTML = emp("No provider data."); return; }
@@ -2083,6 +2267,18 @@ function renderSettingsPage() {
       </div>
       ${bdg(titl(t.status || "Not configured"), tone(t.status))}
     </div>`).join("");
+}
+
+function renderGovernanceRuntimePanel() {
+  const el = document.getElementById("settings-governance-runtime");
+  if (!el) return;
+  const rt = _state?.tenacious_governance_runtime || {};
+  el.innerHTML = `
+    ${kvr("TENACIOUS_GOVERNANCE_ENABLED", trueFalse(Boolean(rt.tenacious_governance_enabled)))}
+    ${kvr("TENACIOUS_GOVERNANCE_ENFORCE", trueFalse(Boolean(rt.tenacious_governance_enforce)))}
+    ${kvr("log path", esc(rt.log_path || "-"))}
+    ${kvr("log exists", yesNo(Boolean(rt.log_exists)))}
+  `;
 }
 
 // ── HEALTH CHECK ─────────────────────────────────────
@@ -2099,12 +2295,14 @@ async function checkHealth() {
 // ── LOAD STATE ───────────────────────────────────────
 async function loadState() {
   try {
-    const [stateResp, comparisonResp] = await Promise.all([
+    const [stateResp, comparisonResp, governanceResp] = await Promise.all([
       fetch("/dashboard/state"),
       fetch("/api/comparison-reviews"),
+      fetch("/api/governance/reviews"),
     ]);
     _state = await stateResp.json();
     _comparisonReviews = comparisonResp.ok ? await comparisonResp.json() : [];
+    _governanceReviews = governanceResp.ok ? await governanceResp.json() : [];
     if (_state.recent_snapshots?.length && !_snap) _snap = _state.recent_snapshots[0];
     renderKpis();
     renderToolStatuses();
@@ -2155,22 +2353,265 @@ document.getElementById("run-demo-button").addEventListener("click", () => runTo
 
 let _simProspect = null;
 let _simAllCompanies = [];
+let _simSelectedProspectId = null;
+let _simActiveProspectCount = 0;
+
+function simResetCorrectionPanel(message = "Select or create a prospect to load Oracle Forge correction history.") {
+  const statusEl = document.getElementById("sim-corr-status");
+  const totalEl = document.getElementById("sim-corr-total");
+  const uniqueEl = document.getElementById("sim-corr-unique");
+  const catsEl = document.getElementById("sim-corr-categories");
+  const lastEl = document.getElementById("sim-corr-last");
+  const catListEl = document.getElementById("sim-corr-category-list");
+  const prospectListEl = document.getElementById("sim-corr-prospect-list");
+  const feedEl = document.getElementById("sim-corr-feed");
+  if (!statusEl || !totalEl || !uniqueEl || !catsEl || !lastEl || !catListEl || !prospectListEl || !feedEl) return;
+
+  statusEl.textContent = message;
+  totalEl.textContent = "0";
+  uniqueEl.textContent = "0";
+  catsEl.textContent = "0";
+  lastEl.textContent = "-";
+  catListEl.innerHTML = '<div class="sim-corr-row"><span>No data yet</span><span class="badge s-nil">0</span></div>';
+  prospectListEl.innerHTML = '<div class="sim-corr-row"><span>No data yet</span><span class="badge s-nil">0</span></div>';
+  feedEl.innerHTML = '<div class="sim-corr-item"><div class="sim-corr-item-text">No correction entries loaded yet.</div></div>';
+}
+
+function simCorrectionSourceLabel(source) {
+  const s = String(source || "").toLowerCase();
+  if (s.includes("week2")) return "Digital Courtroom (Week 2)";
+  if (s.includes("week11")) return "Qwen 2.5 3B Judge (Week 11)";
+  if (s.includes("week8")) return "Oracle Forge (Week 8-9)";
+  return titl(source);
+}
+
+function simSourceTone(source) {
+  const s = String(source || "").toLowerCase();
+  if (s.includes("week2")) return "s-info";
+  if (s.includes("week11")) return "s-ok";
+  if (s.includes("week8")) return "s-warn";
+  return "s-nil";
+}
+
+async function simLoadCorrections(prospectId) {
+  const statusEl = document.getElementById("sim-corr-status");
+  const totalEl = document.getElementById("sim-corr-total");
+  const uniqueEl = document.getElementById("sim-corr-unique");
+  const catsEl = document.getElementById("sim-corr-categories");
+  const lastEl = document.getElementById("sim-corr-last");
+  const catListEl = document.getElementById("sim-corr-category-list");
+  const prospectListEl = document.getElementById("sim-corr-prospect-list");
+  const feedEl = document.getElementById("sim-corr-feed");
+  if (!statusEl || !totalEl || !uniqueEl || !catsEl || !lastEl || !catListEl || !prospectListEl || !feedEl) return;
+
+  if (!prospectId) {
+    simResetCorrectionPanel("No saved prospect selected. Select an active lead or create one first.");
+    return;
+  }
+
+  statusEl.textContent = "Loading Oracle Forge correction history...";
+
+  try {
+    const [prospectResp, globalResp] = await Promise.all([
+      fetch(`/prospects/corrections?prospect_id=${encodeURIComponent(prospectId)}&limit=200`),
+      fetch("/prospects/corrections?limit=400"),
+    ]);
+    const rows = prospectResp.ok ? await prospectResp.json() : [];
+    const globalRows = globalResp.ok ? await globalResp.json() : [];
+
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const safeGlobal = Array.isArray(globalRows) ? globalRows : [];
+
+    const uniqueCount = new Set(
+      safeRows
+        .map(r => String(r?.recommendation || "").trim())
+        .filter(Boolean)
+    ).size;
+
+    const byCategory = {};
+    safeRows.forEach(row => {
+      const category = String(row?.category || "uncategorized");
+      byCategory[category] = (byCategory[category] || 0) + 1;
+    });
+    const categoryEntries = Object.entries(byCategory)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+
+    const byProspect = {};
+    safeGlobal.forEach(row => {
+      const pid = String(row?.prospect_id || "unknown");
+      byProspect[pid] = (byProspect[pid] || 0) + 1;
+    });
+    const topProspects = Object.entries(byProspect)
+      .sort((a, b) => Number(b[1]) - Number(a[1]))
+      .slice(0, 8);
+
+    totalEl.textContent = String(safeRows.length);
+    uniqueEl.textContent = String(uniqueCount);
+    catsEl.textContent = String(categoryEntries.length);
+    lastEl.textContent = safeRows[0]?.created_at ? fmt(safeRows[0].created_at).slice(5, 16) : "-";
+
+    statusEl.textContent = safeRows.length
+      ? `Loaded ${safeRows.length} Oracle Forge correction entr${safeRows.length === 1 ? "y" : "ies"} for ${prospectId}.`
+      : `No Oracle Forge correction history found for ${prospectId} yet.`;
+
+    catListEl.innerHTML = categoryEntries.length
+      ? categoryEntries.slice(0, 8).map(([category, count]) =>
+          `<div class="sim-corr-row"><span>${esc(titl(category))}</span><span class="badge s-info">${esc(String(count))}</span></div>`
+        ).join("")
+      : '<div class="sim-corr-row"><span>No categories yet</span><span class="badge s-nil">0</span></div>';
+
+    prospectListEl.innerHTML = topProspects.length
+      ? topProspects.map(([pid, count]) => {
+          const isCurrent = pid === prospectId;
+          const toneClass = isCurrent ? "s-ok" : "s-nil";
+          const label = isCurrent ? `${pid} (current)` : pid;
+          return `<div class="sim-corr-row"><span>${esc(trunc(label, 28, "-"))}</span><span class="badge ${toneClass}">${esc(String(count))}</span></div>`;
+        }).join("")
+      : '<div class="sim-corr-row"><span>No global data yet</span><span class="badge s-nil">0</span></div>';
+
+    feedEl.innerHTML = safeRows.length
+      ? safeRows.slice(0, 14).map(row => {
+          const source = String(row?.source || "unknown");
+          const category = String(row?.category || "uncategorized");
+          const trigger = String(row?.trigger || "").trim();
+          const recommendation = String(row?.recommendation || "No recommendation");
+          const createdAt = row?.created_at ? fmt(row.created_at) : "-";
+          return `
+            <div class="sim-corr-item">
+              <div class="sim-corr-item-head">
+                <div class="sim-corr-item-meta">
+                  ${bdg(simCorrectionSourceLabel(source), simSourceTone(source))}
+                  ${bdg(titl(category), "s-info")}
+                </div>
+                <span>${esc(createdAt)}</span>
+              </div>
+              <div class="sim-corr-item-text">${esc(recommendation)}</div>
+              ${trigger ? `<div class="sim-corr-item-trigger">Trigger: ${esc(titl(trigger))}</div>` : ""}
+            </div>`;
+        }).join("")
+      : '<div class="sim-corr-item"><div class="sim-corr-item-text">No correction entries yet for this prospect.</div></div>';
+  } catch (err) {
+    simResetCorrectionPanel("Failed to load Oracle Forge correction history.");
+    statusEl.textContent = "Failed to load Oracle Forge correction history: " + (err?.message || "unknown error");
+  }
+}
+
+function simCompanyKey(company) {
+  const domain = String(company?.company_domain || "").trim().toLowerCase();
+  if (domain) return `domain:${domain}`;
+  const prospectId = String(company?.prospect_id || "").trim();
+  if (prospectId) return `prospect:${prospectId}`;
+  return `name:${String(company?.company_name || "").trim().toLowerCase()}`;
+}
+
+function simCountLabel(total, active, query = "") {
+  const suffix = query ? " found" : "";
+  if (active > 0) {
+    return `${active} active lead${active === 1 ? "" : "s"} · ${total} total${suffix}`;
+  }
+  return `${total} compan${total === 1 ? "y" : "ies"}${suffix}`;
+}
+
+function simRowFromActiveProspect(prospect) {
+  return {
+    company_name: prospect.company_name || "",
+    company_domain: prospect.company_domain || "",
+    contact_name: prospect.contact_name || "",
+    contact_email: prospect.contact_email || "",
+    funding_musd: null,
+    employee_count: null,
+    sector: "",
+    in_pipeline: true,
+    pipeline_status: prospect.status,
+    prospect_id: prospect.prospect_id,
+    active_qualified: prospect.status === "active_qualified_tenacious_pass",
+    qualification_score: prospect.segment_confidence,
+    source_hit_count: null,
+    qualification_reason: "Active prospect from live pipeline.",
+  };
+}
+
+function mergeSimCompanies(seedCompanies, activeProspects) {
+  const byKey = new Map();
+  (Array.isArray(seedCompanies) ? seedCompanies : []).forEach(company => {
+    byKey.set(simCompanyKey(company), { ...company });
+  });
+
+  (Array.isArray(activeProspects) ? activeProspects : []).forEach(prospect => {
+    const fromActive = simRowFromActiveProspect(prospect);
+    const key = simCompanyKey(fromActive);
+    if (!byKey.has(key)) {
+      byKey.set(key, fromActive);
+      return;
+    }
+
+    const seeded = byKey.get(key) || {};
+    byKey.set(key, {
+      ...seeded,
+      ...fromActive,
+      funding_musd: seeded.funding_musd,
+      employee_count: seeded.employee_count,
+      sector: seeded.sector || "",
+      source_hit_count: seeded.source_hit_count,
+      qualification_score: seeded.qualification_score ?? fromActive.qualification_score,
+      qualification_reason: seeded.qualification_reason || fromActive.qualification_reason,
+      active_qualified: true,
+      in_pipeline: true,
+    });
+  });
+
+  return [...byKey.values()].sort((a, b) => {
+    const activeDelta = Number(Boolean(b.active_qualified)) - Number(Boolean(a.active_qualified));
+    if (activeDelta !== 0) return activeDelta;
+    const scoreDelta = Number(b.qualification_score || 0) - Number(a.qualification_score || 0);
+    if (scoreDelta !== 0) return scoreDelta;
+    const sourceDelta = Number(b.source_hit_count || 0) - Number(a.source_hit_count || 0);
+    if (sourceDelta !== 0) return sourceDelta;
+    return String(a.company_name || "").localeCompare(String(b.company_name || ""));
+  });
+}
 
 // Dynamic company loader
 async function loadSimCompanies() {
   const grid = document.getElementById("sim-co-grid");
   const countEl = document.getElementById("sim-co-count");
   const searchEl = document.getElementById("sim-co-search");
+  const statusEl = document.getElementById("sim-active-status");
   if (!grid) return;
   grid.innerHTML = '<div class="empty" style="padding:18px 0">Loading companies…</div>';
+  if (statusEl) statusEl.textContent = "Loading active leads and seed companies...";
   try {
-    const data = await (await fetch("/prospects/seed-companies")).json();
-    _simAllCompanies = data;
-    if (countEl) countEl.textContent = data.length + " compan" + (data.length === 1 ? "y" : "ies");
-    if (searchEl) searchEl.value = "";
-    simRenderCompanyList(data);
+      const [activeResp, activeSeedResp] = await Promise.all([
+        fetch("/prospects/active?limit=500"),
+        fetch("/prospects/seed-companies?active_only=true&autorefresh=true"),
+      ]);
+      const activeProspects = activeResp.ok ? await activeResp.json() : [];
+      let seedData = activeSeedResp.ok ? await activeSeedResp.json() : [];
+
+      if (!Array.isArray(seedData)) seedData = [];
+      if (!seedData.length) {
+        const fallbackResp = await fetch("/prospects/seed-companies?active_only=false&autorefresh=false");
+        seedData = fallbackResp.ok ? await fallbackResp.json() : [];
+        if (!Array.isArray(seedData)) seedData = [];
+      }
+
+      const merged = mergeSimCompanies(seedData, Array.isArray(activeProspects) ? activeProspects : []);
+      _simAllCompanies = merged;
+      _simActiveProspectCount = merged.filter(c => c.active_qualified).length;
+
+      if (countEl) {
+        countEl.textContent = simCountLabel(merged.length, _simActiveProspectCount);
+      }
+      if (statusEl) {
+        statusEl.textContent = _simActiveProspectCount > 0
+          ? `Loaded ${_simActiveProspectCount} active lead${_simActiveProspectCount === 1 ? "" : "s"} from pipeline.`
+          : "No active leads yet. Use Refresh Active Leads to ingest and qualify.";
+      }
+      if (searchEl) searchEl.value = "";
+      simRenderCompanyList(merged);
   } catch(err) {
     grid.innerHTML = '<div class="empty">Failed to load companies: ' + esc(err.message) + '</div>';
+      if (statusEl) statusEl.textContent = "Failed to load active leads.";
   }
 }
 
@@ -2185,10 +2626,12 @@ function simRenderCompanyList(list) {
       c.company_domain,
       c.funding_musd ? "$" + c.funding_musd + "M" : null,
       c.employee_count ? c.employee_count + " emp" : null,
+      c.source_hit_count ? c.source_hit_count + "/4 sources" : null,
+      c.qualification_score != null ? "score " + Number(c.qualification_score).toFixed(2) : null,
       c.sector || null,
     ].filter(Boolean).join(" · ");
-    const pillCls = c.in_pipeline ? "pill-active" : "pill-new";
-    const pillTxt = c.in_pipeline ? "● Active" : "+ New";
+    const pillCls = c.active_qualified ? "pill-active" : c.in_pipeline ? "pill-new" : "pill-new";
+    const pillTxt = c.active_qualified ? "● Active Lead" : c.in_pipeline ? "In Pipeline" : "+ New";
     return `<div class="sim-co"
       data-name="${esc(c.company_name)}" data-domain="${esc(c.company_domain)}"
       data-contact="${esc(c.contact_name || "")}" data-email="${esc(c.contact_email || "")}"
@@ -2208,12 +2651,17 @@ function simRenderCompanyList(list) {
       document.getElementById("sim-domain").value   = el.dataset.domain;
       document.getElementById("sim-contact").value  = el.dataset.contact;
       if (el.dataset.email) document.getElementById("sim-email").value = el.dataset.email;
+      _simSelectedProspectId = (el.dataset.prospect || "").trim() || null;
+      simLoadCorrections(_simSelectedProspectId);
     });
   });
-  // Auto-select first in-pipeline, else first
-  const first = list.find(c => c.in_pipeline);
+    // Auto-select first active lead, then first in-pipeline, else first.
+    const first = list.find(c => c.active_qualified) || list.find(c => c.in_pipeline);
   const firstEl = first
-    ? [...grid.querySelectorAll(".sim-co")].find(el => el.dataset.name === first.company_name)
+      ? [...grid.querySelectorAll(".sim-co")].find(el =>
+          (first.prospect_id && el.dataset.prospect === String(first.prospect_id)) ||
+          el.dataset.name === first.company_name
+        )
     : grid.querySelector(".sim-co");
   if (firstEl) firstEl.click();
 }
@@ -2228,7 +2676,10 @@ function simFilterCompanies(query) {
       )
     : _simAllCompanies;
   const countEl = document.getElementById("sim-co-count");
-  if (countEl) countEl.textContent = filtered.length + " compan" + (filtered.length === 1 ? "y" : "ies") + (q ? " found" : "");
+  if (countEl) {
+    const activeCount = filtered.filter(c => c.active_qualified).length;
+    countEl.textContent = simCountLabel(filtered.length, activeCount, q);
+  }
   simRenderCompanyList(filtered);
 }
 
@@ -2259,17 +2710,17 @@ function simAddComparisonMessage(comparison) {
   const judgeDisabled = comparison.judge_enabled === false || String(comparison.judge_reason || "").toLowerCase() === "judge disabled";
   const verdict = judgeDisabled ? "judge_disabled" : String(comparison.judge_verdict || "needs_human_review").toLowerCase();
   const decision = String(comparison.final_decision || "human_review").toLowerCase();
-  const blocked = decision !== "allow";
+  const decisionClass = decision === "block" ? "decision-block" : decision === "allow" ? "decision-allow" : "decision-review";
   const verdictLabel = judgeDisabled ? "JUDGE DISABLED" : verdict === "needs_human_review" ? "HUMAN REVIEW" : verdict.toUpperCase();
   const decisionLabel = judgeDisabled ? "ALLOW (OLD BEHAVIOR)" : finalDecisionLabel(decision);
   const dryRunNote = comparison.comparison_dry_run
     ? `<div class="comparison-body" style="margin-top:6px"><strong>Dry-run:</strong> no real email/SMS/CRM/calendar action was sent or committed.</div>`
     : "";
   const disabledNote = judgeDisabled
-    ? `<div class="comparison-body" style="margin-top:6px"><strong>Setup:</strong> TENACIOUS_JUDGE_ENABLED is not active for this running dashboard, so Week 11 did not review this output.</div>`
+    ? `<div class="comparison-body" style="margin-top:6px"><strong>Setup:</strong> TENACIOUS_JUDGE_ENABLED is not active for this running dashboard, so the Qwen 2.5 3B judge did not review this output.</div>`
     : "";
-  const comparisonTitle = comparison.title || "Week 10 vs Week 11 Judge Comparison";
-  const baselineTitle = comparison.baseline_title || "Week 10 Baseline Output";
+  const comparisonTitle = comparison.title || "Baseline vs Qwen 2.5 3B Judge (Week 11)";
+  const baselineTitle = comparison.baseline_title || "Baseline Output";
   thread.insertAdjacentHTML("beforeend", `
     <div class="sim-msg system">
       <div class="sim-avatar s">W11</div>
@@ -2284,8 +2735,8 @@ function simAddComparisonMessage(comparison) {
               ${bdg(titl(comparison.channel), "s-nil")}
             </div>
           </div>
-          <div class="comparison-panel ${blocked ? "blocked" : ""}">
-            <div class="comparison-title">Week 11 Judge Review</div>
+          <div class="comparison-panel ${decisionClass}">
+            <div class="comparison-title">Qwen 2.5 3B Judge Review (Week 11)</div>
             <div class="comparison-meta" style="margin-top:0;margin-bottom:7px">
               ${bdg(verdictLabel, verdictTone(verdict))}
               ${bdg(decisionLabel, decision === "allow" ? "s-ok" : decision === "block" ? "s-err" : "s-warn")}
@@ -2301,9 +2752,153 @@ function simAddComparisonMessage(comparison) {
   thread.scrollTop = thread.scrollHeight;
 }
 
+function deliveryAlignedGovernanceReview(governance, notDelivered, reason) {
+  const base = governance && typeof governance === "object" ? { ...governance } : {};
+  if (!notDelivered) return base;
+
+  const verdict = String(base.final_verdict || "").toLowerCase();
+  const decision = String(base.final_decision || "").toLowerCase();
+  const riskFocus = String(base.primary_risk_focus || "").toLowerCase();
+  const score = Number(base.overall_score);
+  const remediation = Array.isArray(base.remediation_plan)
+    ? base.remediation_plan.map(x => String(x || "")).filter(Boolean)
+    : [];
+  const rules = Array.isArray(base.rules_applied)
+    ? base.rules_applied.map(x => String(x || "")).filter(Boolean)
+    : [];
+  const strictBlock = (
+    decision === "block"
+    || rules.includes("opt_out_override")
+    || rules.includes("security_override")
+    || riskFocus === "unsupported_pricing_or_scope_claim"
+    || riskFocus === "hard_no_sequence_integrity"
+  );
+  const alignedScore = Number.isFinite(score)
+    ? (strictBlock ? score : Math.min(score, 3.2))
+    : 3.2;
+
+  return {
+    ...base,
+    final_verdict: strictBlock ? "fail" : (verdict === "pass" || !verdict ? "needs_human_review" : verdict),
+    final_decision: strictBlock ? "block" : "human_review",
+    overall_score: Number(alignedScore.toFixed(2)),
+    primary_risk_focus: String(base.primary_risk_focus || (strictBlock ? "" : "delivery_truth_gate") || "delivery_truth_gate"),
+    remediation_plan: [reason, ...remediation.filter(item => item !== reason)],
+    rules_applied: rules.includes("delivery_truth_gate") ? rules : [...rules, "delivery_truth_gate"],
+  };
+}
+
+function simDeliveryReason(flags, phase = "reply", governance = null) {
+  const list = Array.isArray(flags) ? flags.map(x => String(x || "")) : [];
+  const prefix = phase === "initial"
+    ? "Routed to human before initial delivery"
+    : "Routed to human before reply delivery";
+
+  const gov = governance && typeof governance === "object" ? governance : {};
+  const govDecision = String(gov.final_decision || "").toLowerCase();
+  const govRiskFocus = String(gov.primary_risk_focus || "").trim();
+  const govRules = Array.isArray(gov.rules_applied)
+    ? gov.rules_applied.map(x => String(x || "")).filter(Boolean)
+    : [];
+
+  if (govDecision === "block") {
+    if (govRules.includes("opt_out_override")) {
+      return "Blocked before delivery: hard-no/opt-out integrity policy was triggered, so suppression-safe handling is required before any send.";
+    }
+    if (govRules.includes("security_override")) {
+      return "Blocked before delivery: pricing/scope integrity policy was triggered, so manual delivery-lead handling is required.";
+    }
+    const focus = govRiskFocus ? govRiskFocus.replace(/_/g, " ") : "runtime governance policy";
+    return `Blocked before delivery: ${focus} requires policy-safe handling before any send.`;
+  }
+
+  if (govDecision === "human_review" && govRiskFocus && govRiskFocus !== "delivery_truth_gate") {
+    return `${prefix}: ${govRiskFocus.replace(/_/g, " ")} requires delivery-lead review before outbound send.`;
+  }
+
+  if (list.includes("legal_handoff_required")) {
+    return `${prefix}: legal/compliance/reference request requires delivery-lead handling.`;
+  }
+  if (list.includes("custom_pricing_handoff_required")) {
+    return `${prefix}: custom multi-phase pricing or concession terms require human review.`;
+  }
+  if (list.includes("impossible_capacity_pricing_claim_blocked")) {
+    return `${prefix}: requested timeline/seniority/pricing combination requires manual capacity review.`;
+  }
+  if (list.includes("hard_no_route_human") || list.includes("opt_out")) {
+    return `${prefix}: prospect requested no further contact, requiring suppression-safe handling.`;
+  }
+  if (list.includes("reply_email_blocked_by_policy")) {
+    return `${prefix}: runtime policy checks blocked outbound email send.`;
+  }
+  if (list.includes("reply_email_preview_only")) {
+    return `${prefix}: reply stayed in preview mode and was not sent.`;
+  }
+  if (list.includes("reply_email_send_failed")) {
+    return `${prefix}: outbound email send failed at runtime.`;
+  }
+  return `${prefix}: runtime guardrails required manual review before any send.`;
+}
+
+function simAddGovernanceMessage(governance, opts = {}) {
+  const thread = document.getElementById("sim-thread");
+  const empty = thread.querySelector(".sim-empty");
+  if (empty) empty.remove();
+  const verdict = String(governance.final_verdict || "needs_human_review").toLowerCase();
+  const decision = String(governance.final_decision || "human_review").toLowerCase();
+  const score = governance.overall_score ?? "-";
+  const risk = governance.primary_risk_focus || "none";
+  const remediation = (governance.remediation_plan || [""])[0] || "No remediation provided.";
+  const title = opts.title || "Digital Courtroom Governance Review (Week 2)";
+  const subtitle = opts.subtitle || "Digital Courtroom (Week 2)";
+  const decisionClass = decision === "block" ? "decision-block" : decision === "allow" ? "decision-allow" : "decision-review";
+
+  thread.insertAdjacentHTML("beforeend", `
+    <div class="sim-msg system">
+      <div class="sim-avatar s">W2</div>
+      <div class="sim-msg-body">
+        <div class="sim-msg-who">${esc(title)}</div>
+        <div class="comparison-grid">
+          <div class="comparison-panel">
+            <div class="comparison-title">${esc(subtitle)}</div>
+            <div class="comparison-body"><strong>Risk Focus:</strong> ${esc(risk)}</div>
+            <div class="comparison-body" style="margin-top:6px"><strong>Score:</strong> ${esc(String(score))}/5</div>
+            <div class="comparison-meta">
+              ${bdg(String(verdict).toUpperCase().replace(/_/g, " "), verdictTone(verdict))}
+              ${bdg(finalDecisionLabel(decision), decision === "allow" ? "s-ok" : decision === "block" ? "s-err" : "s-warn")}
+            </div>
+          </div>
+          <div class="comparison-panel ${decisionClass}">
+            <div class="comparison-title">Chief Justice Decision</div>
+            <div class="comparison-body"><strong>Remediation:</strong> ${esc(remediation)}</div>
+            <div class="comparison-body" style="margin-top:6px"><strong>Rules:</strong> ${esc((governance.rules_applied || []).join(", ") || "none")}</div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+  thread.scrollTop = thread.scrollHeight;
+}
+
 function simEnableButtons(on) {
   document.getElementById("sim-composer").style.display = on ? "block" : "none";
   document.getElementById("sim-send-btn").disabled = !on;
+  document.querySelectorAll(".sim-quickfill-btn").forEach(btn => {
+    btn.disabled = !on;
+  });
+}
+
+function simWireQuickFillButtons() {
+  const input = document.getElementById("sim-body-input");
+  const statusEl = document.getElementById("sim-reply-status");
+  document.querySelectorAll("[data-sim-quick-fill]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const phrase = btn.getAttribute("data-sim-quick-fill") || "";
+      input.value = phrase;
+      input.focus();
+      input.setSelectionRange(phrase.length, phrase.length);
+      statusEl.textContent = "Loaded template: " + btn.textContent.trim() + ".";
+    });
+  });
 }
 
 document.getElementById("sim-form").addEventListener("submit", async e => {
@@ -2326,6 +2921,7 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
     const p = _simProspect.prospect;
 
     // Update UI
+    _simSelectedProspectId = p.prospect_id;
     document.getElementById("sim-prospect-badge").textContent = p.prospect_id;
     document.getElementById("sim-prospect-badge").className = "badge s-ok";
     document.getElementById("sim-channel-badge").textContent = "Email thread open";
@@ -2343,6 +2939,8 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
     const emailStatus = String(emailResult?.status || "previewed").toLowerCase();
     const emailReallySent = emailStatus === "executed" && String(emailResult?.message || "").toLowerCase().includes("live email");
     const emailBlocked = emailStatus === "skipped";
+    const emailPreviewOnly = emailStatus === "previewed";
+    const emailNotDelivered = !emailReallySent;
     const emailLine = emailReallySent
       ? `Pipeline complete. Live initial outreach email submitted to ${p.contact_email || "prospect"}.`
       : emailBlocked
@@ -2351,7 +2949,7 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
 
     // Add initial system message to thread
     document.getElementById("sim-thread").innerHTML = "";
-    simAddMessage("system", emailReallySent ? "Tenacious System — Initial Email Sent" : emailBlocked ? "Tenacious System — Initial Email Blocked" : "Tenacious System — Initial Email Preview", emailLine, [
+    simAddMessage("system", emailReallySent ? "Tenacious System - Initial Email Sent" : emailBlocked ? "Tenacious System - Initial Email Blocked" : "Tenacious System - Initial Email Preview", emailLine, [
       { text: p.primary_segment_label || p.primary_segment, tone: "s-info" },
       { text: "AI Maturity " + p.ai_maturity_score + "/3", tone: "s-nil" },
       { text: titl(emailStatus), tone: tone(emailStatus) },
@@ -2361,28 +2959,57 @@ document.getElementById("sim-form").addEventListener("submit", async e => {
       if (art.ok) {
         const emailArtifact = JSON.parse(await art.text());
         const judgeReview = emailArtifact.judge_review || {};
-        const verdict = String(judgeReview.verdict || "").toLowerCase();
+        const governanceReview = emailArtifact.governance_review || {};
+        const verdictRaw = String(judgeReview.verdict || "").toLowerCase();
+        const verdict = emailNotDelivered && (verdictRaw === "pass" || !verdictRaw)
+          ? "needs_human_review"
+          : (verdictRaw || (emailNotDelivered ? "needs_human_review" : "pass"));
         if (verdict || judgeReview.reason) {
+          const initialDeliveryReason = emailNotDelivered
+            ? (emailBlocked
+              ? "Routed to human before initial delivery: runtime policy checks blocked outbound email send."
+              : emailPreviewOnly
+              ? "Routed to human before initial delivery: message stayed in preview mode and was not sent."
+              : "Routed to human before initial delivery: runtime guardrails prevented outbound send.")
+            : "";
           simAddComparisonMessage({
-            title: "Week 11 Initial Outreach Review",
+            title: "Qwen 2.5 3B Initial Outreach Review (Week 11)",
             baseline_title: "Initial Outreach Draft",
             baseline_output: `Subject: ${emailArtifact.subject || ""}\n\n${emailArtifact.body || ""}`,
             action_type: "email",
             channel: "email",
-            judge_verdict: verdict || "pass",
-            judge_reason: judgeReview.reason || "No reason provided.",
-            final_decision: emailBlocked ? "human_review" : "allow",
-            improvement_summary: emailBlocked
-              ? "Stopped initial outreach before sending."
-              : "Initial outreach passed the Week 11 guardrail.",
+            judge_verdict: verdict,
+            judge_reason: emailNotDelivered
+              ? initialDeliveryReason
+              : (judgeReview.reason || "No reason provided."),
+            final_decision: emailNotDelivered ? "human_review" : "allow",
+            improvement_summary: emailNotDelivered
+              ? (emailBlocked
+                ? "Stopped initial outreach before sending."
+                : emailPreviewOnly
+                ? "Initial outreach stayed in preview mode and was not delivered."
+                : "Initial outreach was not delivered and needs human review.")
+              : "Initial outreach passed the Qwen 2.5 3B judge guardrail.",
             comparison_dry_run: Boolean(emailArtifact.comparison_dry_run),
             judge_enabled: String(judgeReview.reason || "").toLowerCase() !== "judge disabled",
+          });
+        }
+        const effectiveGovernanceReview = deliveryAlignedGovernanceReview(
+          governanceReview,
+          emailNotDelivered,
+          "Delivery truth gate: initial outreach was not delivered, so route to human review."
+        );
+        if (effectiveGovernanceReview.review_id || effectiveGovernanceReview.final_decision) {
+          simAddGovernanceMessage(effectiveGovernanceReview, {
+            title: "Digital Courtroom Initial Outreach Review (Week 2)",
+            subtitle: "Digital Courtroom (Week 2)",
           });
         }
       }
     } catch {}
     simEnableButtons(true);
     status.textContent = "Prospect created. Type a message to continue the conversation.";
+    await simLoadCorrections(_simSelectedProspectId);
     await loadState();
   } catch(err) {
     status.textContent = "Error: " + err.message;
@@ -2422,48 +3049,120 @@ async function simSend() {
       replyText = lines.slice(1).join("\\n").trim();
     }
 
+    const flags = d.risk_flags || [];
+    const wasBlocked = flags.includes("reply_email_blocked_by_policy") || flags.includes("reply_email_send_failed");
+    const wasPreviewOnly = flags.includes("reply_email_preview_only");
+    const wasHandoffDraft = flags.includes("reply_draft_handoff_only") || d.next_action === "handoff_human";
+    const wasNotDelivered = wasBlocked || wasPreviewOnly || wasHandoffDraft;
     const actionTone = d.next_action === "handoff_human" ? "s-warn" : d.next_action === "book_meeting" ? "s-ok" : "s-info";
     const badges = [
       { text: titl(d.next_action), tone: actionTone },
-      ...(d.risk_flags || []).filter(f => !f.startsWith("sms_skipped:")).map(f => ({ text: f, tone: "s-warn" })),
+      ...(flags).filter(f => !f.startsWith("sms_skipped:")).map(f => ({ text: f, tone: "s-warn" })),
     ];
-    simAddMessage("system", "Tenacious System — Email Reply", replyText || "(no reply draft)", badges);
+    const systemWho = wasBlocked
+      ? "Tenacious System - Reply Blocked (Not Sent)"
+      : wasPreviewOnly
+      ? "Tenacious System - Reply Previewed (Not Sent)"
+      : wasHandoffDraft
+      ? "Tenacious System - Human Handoff Draft"
+      : "Tenacious System - Email Reply Sent";
+    simAddMessage("system", systemWho, replyText || "(no reply draft)", badges);
 
-    // Run judge on the actual reply and show the verdict panel
+    // Show judge/governance panel from the actual send artifact (source of truth).
     if (replyText) {
       try {
-        const judgePayload = {
-          prospect_id:     p.prospect_id,
-          contact_email:   p.contact_email,
-          contact_phone:   p.contact_phone,
-          channel:         "email",
-          body:            customBody,
-          baseline_output: replyText,
-        };
-        const jr = await fetch("/api/simulator/compare-reply", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(judgePayload) });
-        if (jr.ok) {
-          const jc = await jr.json();
-          simAddComparisonMessage({
-            ...jc,
-            title: "Week 11 Agent Reply — Judge Review",
-            baseline_title: "Week 11 Agent Reply",
-            improvement_summary: jc.final_decision === "allow"
-              ? "Agent reply passed the Week 11 guardrail."
-              : (jc.improvement_summary || "Agent reply blocked by Week 11 judge."),
-          });
+        const decisionJudgeReview = d.judge_review && typeof d.judge_review === "object" ? d.judge_review : {};
+        const decisionGovernanceReview = d.governance_review && typeof d.governance_review === "object" ? d.governance_review : {};
+        let emailArtifact = null;
+        let judgeReview = Object.keys(decisionJudgeReview).length ? decisionJudgeReview : {};
+        let governanceReview = Object.keys(decisionGovernanceReview).length ? decisionGovernanceReview : {};
+        let baselineOutput = wasNotDelivered
+          ? (d.reply_draft || replyText || "(no reply draft)")
+          : "";
+
+        const art = await fetch(`/artifacts/${p.prospect_id}/email`);
+        if (art.ok) {
+          emailArtifact = JSON.parse(await art.text());
+          if (!baselineOutput) {
+            baselineOutput = `Subject: ${emailArtifact.subject || ""}\n\n${emailArtifact.body || ""}`;
+          }
+          if (!Object.keys(judgeReview).length) {
+            judgeReview = emailArtifact.judge_review || {};
+          }
+          if (!Object.keys(governanceReview).length) {
+            governanceReview = emailArtifact.governance_review || {};
+          }
         }
-      } catch { /* judge review is best-effort */ }
+
+          if (!baselineOutput) {
+            baselineOutput = d.reply_draft || replyText || "(no reply draft)";
+          }
+
+          const effectiveGovernanceReview = deliveryAlignedGovernanceReview(
+            governanceReview,
+            wasNotDelivered,
+            "Delivery truth gate: reply was not delivered, so route to human review."
+          );
+          const deliveryReason = simDeliveryReason(flags, "reply", effectiveGovernanceReview);
+          const verdictRaw = String(judgeReview.verdict || "pass").toLowerCase();
+          const verdict = wasNotDelivered && (verdictRaw === "pass" || verdictRaw === "not_available" || !verdictRaw)
+            ? "needs_human_review"
+            : verdictRaw;
+          const fromFlagsDecision = wasNotDelivered ? "human_review" : "allow";
+          const governanceDecision = String(governanceReview.final_decision || "allow").toLowerCase();
+          const finalDecision = governanceDecision !== "allow" ? governanceDecision : fromFlagsDecision;
+          simAddComparisonMessage({
+            title: wasBlocked || wasPreviewOnly || wasHandoffDraft
+              ? "Qwen 2.5 3B Draft Review (Week 11, Not Sent)"
+              : "Qwen 2.5 3B Reply Review (Week 11)",
+            baseline_title: wasBlocked || wasPreviewOnly || wasHandoffDraft
+              ? "Qwen 2.5 3B Draft (Week 11)"
+              : "Qwen 2.5 3B Reply (Week 11)",
+            baseline_output: baselineOutput,
+            action_type: "email_reply",
+            channel: "email",
+            judge_verdict: verdict,
+            judge_reason: wasNotDelivered
+              ? deliveryReason
+              : (judgeReview.reason || "No reason provided."),
+            final_decision: finalDecision,
+            improvement_summary: finalDecision === "allow"
+              ? (wasBlocked || wasPreviewOnly || wasHandoffDraft
+                ? "Draft passed guardrails but it was not delivered."
+                : "Agent reply passed runtime guardrails.")
+              : wasNotDelivered
+              ? (finalDecision === "block"
+                ? "Delivery truth gate preserved a strict policy block before outbound send."
+                : "Delivery truth gate routed this draft to human review before outbound send.")
+              : ((emailArtifact && emailArtifact.week11_status) || "Reply was blocked or routed for review before delivery."),
+            comparison_dry_run: Boolean(emailArtifact && emailArtifact.comparison_dry_run),
+            judge_enabled: wasNotDelivered
+              ? true
+              : String(judgeReview.reason || "").toLowerCase() !== "judge disabled",
+          });
+          if (effectiveGovernanceReview.review_id || effectiveGovernanceReview.final_decision) {
+            simAddGovernanceMessage(effectiveGovernanceReview, {
+              title: wasBlocked || wasPreviewOnly || wasHandoffDraft
+                ? "Digital Courtroom Draft Review (Week 2, Not Sent)"
+                : "Digital Courtroom Reply Review (Week 2)",
+              subtitle: "Digital Courtroom (Week 2)",
+            });
+          }
+      } catch { /* artifact read is best-effort */ }
     }
 
-    // Show SMS result — check actual risk flags from server
-    const flags = d.risk_flags || [];
+    // Show SMS result - check actual risk flags from server
     const smsBlocked = flags.includes("sms_warm_lead_gate_blocked");
+    const smsPolicyBlocked = flags.includes("sms_blocked_by_policy") || flags.includes("sms_handoff_skipped");
     const smsFailed  = flags.includes("sms_handoff_failed");
     const smsSkipped = flags.some(f => f.startsWith("sms_skipped:"));
-    const bodyLower  = customBody.toLowerCase();
-    const hasSmsToken = ["sms","text me","whatsapp","call me","phone me"].some(t => bodyLower.includes(t));
-    const hasSchedToken = ["call","calendar","meet","meeting","schedule","next week","tomorrow","book"].some(t => bodyLower.includes(t));
-    const smsSent = (hasSmsToken || hasSchedToken) && !smsBlocked && !smsFailed && !smsSkipped;
+    const decisionAction = String(d.next_action || "").toLowerCase();
+    const smsAttempted = decisionAction === "book_meeting"
+      || smsBlocked
+      || smsPolicyBlocked
+      || smsFailed
+      || smsSkipped;
+    const smsSent = smsAttempted && !smsBlocked && !smsPolicyBlocked && !smsFailed && !smsSkipped;
     if (smsSent) {
       try {
         const art = await fetch(`/artifacts/${p.prospect_id}/sms`);
@@ -2472,14 +3171,29 @@ async function simSend() {
           simAddMessage("sms", "Africa\'s Talking SMS → " + (p.contact_phone || "prospect"), artData.body || "Booking link sent.");
         }
       } catch {
-        simAddMessage("sms", "Africa\'s Talking SMS → " + (p.contact_phone || "prospect"), "Booking link sent — check the AT Simulator.");
+        simAddMessage("sms", "Africa\'s Talking SMS → " + (p.contact_phone || "prospect"), "Booking link sent - check the AT Simulator.");
       }
     } else if (smsBlocked) {
-      simAddMessage("sms", "SMS — gate blocked", "No prior email reply recorded; SMS not sent.");
+      simAddMessage("sms", "SMS - gate blocked", "Warm-lead gate blocked SMS for this turn.");
+    } else if (smsPolicyBlocked) {
+      simAddMessage("sms", "SMS - policy blocked", "SMS was blocked by runtime guardrails or routed for manual review.");
+    } else if (smsSkipped) {
+      const skipFlag = flags.find(f => f.startsWith("sms_skipped:")) || "sms_skipped:unknown_reason";
+      const reason = skipFlag.split(":", 2)[1] || "unknown_reason";
+      simAddMessage("sms", "SMS - skipped", "SMS not sent: " + reason.replace(/_/g, " ") + ".");
     }
 
-    statusEl.textContent = "Sent — " + titl(d.next_action || "");
+    if (wasBlocked) {
+      statusEl.textContent = "Blocked - reply was not sent.";
+    } else if (wasPreviewOnly) {
+      statusEl.textContent = "Preview only - no live send.";
+    } else if (wasHandoffDraft) {
+      statusEl.textContent = "Routed to human - draft not auto-sent.";
+    } else {
+      statusEl.textContent = "Sent - " + titl(d.next_action || "");
+    }
     document.getElementById("sim-body-input").value = "";
+    await simLoadCorrections(_simSelectedProspectId || p.prospect_id);
     await loadState();
   } catch(err) {
     simAddMessage("system", "System Error", err.message);
@@ -2491,6 +3205,7 @@ async function simSend() {
 
 document.getElementById("sim-reset-btn").addEventListener("click", () => {
   _simProspect = null;
+  _simSelectedProspectId = null;
   document.getElementById("sim-prospect-badge").textContent = "Not created";
   document.getElementById("sim-prospect-badge").className = "badge s-nil";
   document.getElementById("sim-channel-badge").textContent = "Waiting for prospect";
@@ -2503,9 +3218,38 @@ document.getElementById("sim-reset-btn").addEventListener("click", () => {
   document.getElementById("sim-run-status").textContent = "";
   document.getElementById("sim-reply-status").textContent = "";
   simEnableButtons(false);
+  simResetCorrectionPanel();
+});
+
+document.getElementById("sim-corr-refresh-btn")?.addEventListener("click", () => {
+  simLoadCorrections(_simSelectedProspectId);
+});
+
+document.getElementById("sim-active-refresh-btn")?.addEventListener("click", async () => {
+  const btn = document.getElementById("sim-active-refresh-btn");
+  const statusEl = document.getElementById("sim-active-status");
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.textContent = "Refreshing active leads from all sources...";
+  try {
+    const response = await fetch("/prospects/refresh-active?max_companies=150", { method: "POST" });
+    if (!response.ok) throw new Error("refresh failed");
+    const payload = await response.json();
+    if (statusEl) {
+      const active = Number(payload?.active || 0);
+      const processed = Number(payload?.processed || 0);
+      statusEl.textContent = `Refresh complete: ${active} active leads from ${processed} processed companies.`;
+    }
+    await loadSimCompanies();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "Refresh failed: " + (err?.message || "unknown error");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 });
 
 // ── INIT ─────────────────────────────────────────────
+simWireQuickFillButtons();
+simResetCorrectionPanel();
 checkHealth();
 loadState();
 showPage(location.hash.slice(1) || "overview");
