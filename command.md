@@ -1,3 +1,4 @@
+# cost? and diagram of each 4 layers how they work in dashboard? and ablation 
 Step 1 — Create ClearMint prospect + send initial email
 
 

@@ -3,7 +3,7 @@
 *To: Tenacious CEO and CFO*  
 *Date: April 25, 2026*  
 *Status: Draft*
-
+##sqlitebrowser 
 ## Page 1: The Decision
 
 We built an email-first conversion engine that enriches synthetic prospects from public signals, drafts signal-grounded outreach, enforces honesty and bench guardrails, and routes qualified conversations toward HubSpot and Cal.com with human escalation where needed. In the stored preview run, the repo records a preview cost of `$0.000178` per file-defined qualified lead and a `0%` synchronous stalled-thread rate in the synthetic trace slice against the current Tenacious manual baseline of `30–40%`. Recommendation: run a `30-day Segment 2 pilot` at `80 outbound contacts per month` with a `sub-$100 weekly budget`, and judge it on `>=7% reply rate` plus `<20% stale-qualified-reply rate`.
