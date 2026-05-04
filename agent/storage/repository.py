@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from typing import Any
 
 from agent.schemas.briefs import (
     CompetitorGapBrief,
@@ -86,6 +87,400 @@ class ProspectRepository:
         with get_connection() as connection:
             row = connection.execute("SELECT COUNT(*) AS count FROM prospects").fetchone()
         return int(row["count"])
+
+    def list_active(self, limit: int = 200) -> list[ProspectRecord]:
+        with get_connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    prospect_id,
+                    company_name,
+                    company_domain,
+                    contact_name,
+                    contact_email,
+                    contact_phone,
+                    source,
+                    primary_segment,
+                    primary_segment_label,
+                    segment_confidence,
+                    ai_maturity_score,
+                    status,
+                    created_at,
+                    updated_at
+                FROM prospects
+                WHERE status = 'active_qualified_tenacious_pass'
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [ProspectRecord.model_validate(dict(row)) for row in rows]
+
+    def find_by_company(self, company_name: str, company_domain: str | None = None) -> ProspectRecord | None:
+        with get_connection() as connection:
+            if company_domain:
+                row = connection.execute(
+                    """
+                    SELECT
+                        prospect_id,
+                        company_name,
+                        company_domain,
+                        contact_name,
+                        contact_email,
+                        contact_phone,
+                        source,
+                        primary_segment,
+                        primary_segment_label,
+                        segment_confidence,
+                        ai_maturity_score,
+                        status,
+                        created_at,
+                        updated_at
+                    FROM prospects
+                    WHERE lower(company_domain) = lower(?)
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """,
+                    (company_domain,),
+                ).fetchone()
+                if row:
+                    return ProspectRecord.model_validate(dict(row))
+
+            row = connection.execute(
+                """
+                SELECT
+                    prospect_id,
+                    company_name,
+                    company_domain,
+                    contact_name,
+                    contact_email,
+                    contact_phone,
+                    source,
+                    primary_segment,
+                    primary_segment_label,
+                    segment_confidence,
+                    ai_maturity_score,
+                    status,
+                    created_at,
+                    updated_at
+                FROM prospects
+                WHERE lower(company_name) = lower(?)
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (company_name,),
+            ).fetchone()
+        return ProspectRecord.model_validate(dict(row)) if row else None
+
+    def save_source_signal_record(
+        self,
+        *,
+        company_key: str,
+        company_name: str,
+        company_domain: str | None,
+        source_name: str,
+        observed_at: str | None,
+        collected_at: str,
+        raw_payload_json: str,
+        normalized_payload_json: str,
+    ) -> None:
+        with get_connection() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO source_signal_records (
+                    company_key,
+                    company_name,
+                    company_domain,
+                    source_name,
+                    observed_at,
+                    collected_at,
+                    raw_payload_json,
+                    normalized_payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    company_key,
+                    company_name,
+                    company_domain,
+                    source_name,
+                    observed_at,
+                    collected_at,
+                    raw_payload_json,
+                    normalized_payload_json,
+                ),
+            )
+
+    def save_lead_qualification_record(
+        self,
+        *,
+        prospect_id: str,
+        company_key: str,
+        company_name: str,
+        company_domain: str | None,
+        source_hit_count: int,
+        qualification_score: float,
+        qualification_status: str,
+        qualification_reason: str,
+        judge_reason: str,
+        governance_decision: str,
+    ) -> None:
+        updated_at = datetime.now(timezone.utc).isoformat()
+        with get_connection() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO lead_qualification_records (
+                    prospect_id,
+                    company_key,
+                    company_name,
+                    company_domain,
+                    source_hit_count,
+                    qualification_score,
+                    qualification_status,
+                    qualification_reason,
+                    judge_reason,
+                    governance_decision,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    prospect_id,
+                    company_key,
+                    company_name,
+                    company_domain,
+                    source_hit_count,
+                    qualification_score,
+                    qualification_status,
+                    qualification_reason,
+                    judge_reason,
+                    governance_decision,
+                    updated_at,
+                ),
+            )
+
+    def qualification_map(self) -> dict[str, dict[str, Any]]:
+        with get_connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    prospect_id,
+                    company_key,
+                    company_name,
+                    company_domain,
+                    source_hit_count,
+                    qualification_score,
+                    qualification_status,
+                    qualification_reason,
+                    judge_reason,
+                    governance_decision,
+                    updated_at
+                FROM lead_qualification_records
+                """
+            ).fetchall()
+        return {
+            str(row["prospect_id"]): {
+                "company_key": row["company_key"],
+                "company_name": row["company_name"],
+                "company_domain": row["company_domain"],
+                "source_hit_count": int(row["source_hit_count"] or 0),
+                "qualification_score": float(row["qualification_score"] or 0),
+                "qualification_status": row["qualification_status"],
+                "qualification_reason": row["qualification_reason"],
+                "judge_reason": row["judge_reason"],
+                "governance_decision": row["governance_decision"],
+                "updated_at": row["updated_at"],
+            }
+            for row in rows
+        }
+
+    def add_correction_history(
+        self,
+        *,
+        prospect_id: str | None,
+        source: str,
+        category: str,
+        recommendation: str,
+        trigger: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        created_at = datetime.now(timezone.utc).isoformat()
+        with get_connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO correction_history_records (
+                    prospect_id,
+                    source,
+                    category,
+                    trigger,
+                    recommendation,
+                    metadata_json,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    prospect_id,
+                    source,
+                    category,
+                    trigger,
+                    recommendation,
+                    json.dumps(metadata or {}),
+                    created_at,
+                ),
+            )
+
+    def list_correction_history(
+        self,
+        *,
+        prospect_id: str | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        with get_connection() as connection:
+            if prospect_id:
+                rows = connection.execute(
+                    """
+                    SELECT
+                        correction_id,
+                        prospect_id,
+                        source,
+                        category,
+                        trigger,
+                        recommendation,
+                        metadata_json,
+                        created_at
+                    FROM correction_history_records
+                    WHERE prospect_id = ?
+                    ORDER BY correction_id DESC
+                    LIMIT ?
+                    """,
+                    (prospect_id, limit),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """
+                    SELECT
+                        correction_id,
+                        prospect_id,
+                        source,
+                        category,
+                        trigger,
+                        recommendation,
+                        metadata_json,
+                        created_at
+                    FROM correction_history_records
+                    ORDER BY correction_id DESC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
+        return [
+            {
+                "correction_id": int(row["correction_id"]),
+                "prospect_id": row["prospect_id"],
+                "source": row["source"],
+                "category": row["category"],
+                "trigger": row["trigger"],
+                "recommendation": row["recommendation"],
+                "metadata": json.loads(row["metadata_json"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+
+    def recent_recommendation_memory(self, prospect_id: str, limit: int = 6) -> list[str]:
+        rows = self.list_correction_history(prospect_id=prospect_id, limit=limit * 3)
+        seen: set[str] = set()
+        memory: list[str] = []
+        for row in rows:
+            rec = str(row.get("recommendation") or "").strip()
+            if not rec or rec in seen:
+                continue
+            memory.append(rec)
+            seen.add(rec)
+            if len(memory) >= limit:
+                break
+        return memory
+
+    def recent_global_recommendation_memory(
+        self,
+        *,
+        limit: int = 6,
+        min_occurrences: int = 1,
+        exclude_prospect_id: str | None = None,
+        sources: list[str] | None = None,
+    ) -> list[str]:
+        bounded_limit = max(1, limit)
+        bounded_min_occurrences = max(1, min_occurrences)
+
+        where_clauses = ["trim(recommendation) <> ''"]
+        parameters: list[object] = []
+
+        if exclude_prospect_id:
+            where_clauses.append("(prospect_id IS NULL OR prospect_id <> ?)")
+            parameters.append(exclude_prospect_id)
+
+        if sources:
+            placeholders = ", ".join("?" for _ in sources)
+            where_clauses.append(f"source IN ({placeholders})")
+            parameters.extend(sources)
+
+        query = f"""
+            SELECT
+                recommendation,
+                COUNT(*) AS seen_count,
+                MAX(correction_id) AS latest_correction_id
+            FROM correction_history_records
+            WHERE {' AND '.join(where_clauses)}
+            GROUP BY recommendation
+            HAVING COUNT(*) >= ?
+            ORDER BY latest_correction_id DESC
+            LIMIT ?
+        """
+        parameters.extend((bounded_min_occurrences, bounded_limit))
+
+        with get_connection() as connection:
+            rows = connection.execute(query, tuple(parameters)).fetchall()
+
+        memory: list[str] = []
+        for row in rows:
+            recommendation = str(row["recommendation"] or "").strip()
+            if recommendation:
+                memory.append(recommendation)
+        return memory
+
+    def recent_recommendation_memory_blended(
+        self,
+        *,
+        prospect_id: str | None,
+        limit: int = 6,
+        local_limit: int = 6,
+        global_limit: int = 6,
+        global_min_occurrences: int = 1,
+        global_sources: list[str] | None = None,
+    ) -> list[str]:
+        bounded_limit = max(1, limit)
+
+        local_memory = (
+            self.recent_recommendation_memory(prospect_id, limit=max(1, local_limit))
+            if prospect_id
+            else []
+        )
+        global_memory = self.recent_global_recommendation_memory(
+            limit=max(1, global_limit),
+            min_occurrences=global_min_occurrences,
+            exclude_prospect_id=prospect_id,
+            sources=global_sources,
+        )
+
+        blended: list[str] = []
+        seen: set[str] = set()
+        for recommendation in [*local_memory, *global_memory]:
+            normalized = recommendation.strip()
+            if not normalized or normalized in seen:
+                continue
+            blended.append(normalized)
+            seen.add(normalized)
+            if len(blended) >= bounded_limit:
+                break
+        return blended
 
     def update_status(self, prospect_id: str, status: str) -> None:
         updated_at = datetime.now(timezone.utc).isoformat()

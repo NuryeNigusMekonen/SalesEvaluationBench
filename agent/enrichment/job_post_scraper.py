@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from importlib import import_module
+import re
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 
@@ -48,28 +49,68 @@ def scrape_public_job_pages_with_playwright(urls: list[str]) -> list[dict]:
         return []
 
     collected: list[dict] = []
-    with sync_api.sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page()
-        for url in urls:
-            if not is_public_job_page(url):
-                continue
-            if not robots_allows_public_page(url):
-                continue
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=15_000)
-                title = page.title()
-                collected.append(
-                    {
-                        "source_url": url,
-                        "title": title,
-                        "scraped_at": utc_now_iso(),
-                    }
-                )
-            except Exception:
-                continue
-        browser.close()
+    try:
+        with sync_api.sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page()
+            for url in urls:
+                if not is_public_job_page(url):
+                    continue
+                if not robots_allows_public_page(url):
+                    continue
+                try:
+                    page.goto(url, wait_until="domcontentloaded", timeout=15_000)
+                    title = page.title()
+                    collected.append(
+                        {
+                            "source_url": url,
+                            "title": title,
+                            "scraped_at": utc_now_iso(),
+                        }
+                    )
+                except Exception:
+                    continue
+            browser.close()
+    except Exception:
+        # Fail safe so enrichment can continue on snapshot/live connector data.
+        return []
     return collected
+
+
+def _default_public_pages(company_name: str, company_domain: str | None) -> list[str]:
+    slug = (company_domain or company_name).replace(".", "-")
+    return [
+        f"https://www.builtin.com/company/{slug}/jobs",
+        f"https://wellfound.com/company/{slug}/jobs",
+        f"https://www.linkedin.com/company/{slug}/jobs",
+    ]
+
+
+def _infer_open_roles_from_titles(scraped_pages: list[dict]) -> int:
+    highest_count = 0
+    for row in scraped_pages:
+        title = str(row.get("title") or "")
+        for match in re.findall(r"(\d+)\s+(?:open\s+)?jobs?", title, flags=re.IGNORECASE):
+            highest_count = max(highest_count, int(match))
+    return highest_count
+
+
+def _playwright_source_refs(scraped_pages: list[dict]) -> list[dict]:
+    refs: list[dict] = []
+    for row in scraped_pages:
+        source_url = str(row.get("source_url") or "").strip()
+        if not source_url:
+            continue
+        refs.append(
+            build_source_ref(
+                source_name="public_job_pages_live",
+                reference=source_url,
+                note="Public company jobs page scraped via Playwright after robots.txt allow check.",
+                observed_at=row.get("scraped_at"),
+                source_type="public_page_scrape",
+            )
+        )
+    return refs
 
 
 def compute_60_day_job_velocity(postings: list[dict], *, as_of: datetime | None = None) -> dict[str, int]:
@@ -101,10 +142,59 @@ def compute_60_day_job_velocity(postings: list[dict], *, as_of: datetime | None 
     }
 
 
-def build_job_post_signal(company_name: str, company_domain: str | None) -> dict:
+def build_job_post_signal(
+    company_name: str,
+    company_domain: str | None,
+    *,
+    prefer_browser_scrape: bool = False,
+) -> dict:
     collected_at = utc_now_iso()
     record = job_posts_connector.lookup(company_name, company_domain)
+    default_public_pages = _default_public_pages(company_name, company_domain)
+    scraped_pages = (
+        scrape_public_job_pages_with_playwright(default_public_pages)
+        if prefer_browser_scrape
+        else []
+    )
     if not record:
+        if scraped_pages:
+            inferred_open_roles = _infer_open_roles_from_titles(scraped_pages)
+            observed_at = max((row.get("scraped_at") for row in scraped_pages if row.get("scraped_at")), default=None)
+            if inferred_open_roles > 0:
+                summary = (
+                    f"Playwright public-page scrape found job evidence and inferred about {inferred_open_roles} "
+                    "open roles from visible page titles."
+                )
+                confidence = 0.62
+                edge_case = None
+            else:
+                summary = (
+                    "Playwright scraped public company job pages, but no explicit open-role count was readable "
+                    "from page titles."
+                )
+                confidence = 0.49
+                edge_case = "playwright_scrape_no_role_count"
+
+            examples = [
+                str(row.get("title") or "").strip()
+                for row in scraped_pages
+                if str(row.get("title") or "").strip()
+            ][:3]
+            return {
+                "name": "job_post_velocity",
+                "summary": summary,
+                "confidence": confidence,
+                "observed_at": observed_at,
+                "collected_at": collected_at,
+                "source_attribution": _playwright_source_refs(scraped_pages),
+                "edge_case": edge_case,
+                "open_engineering_roles": inferred_open_roles,
+                "ai_roles": 0,
+                "growth_delta_60d_pct": 0,
+                "examples": examples,
+                "matched": True,
+            }
+
         return {
             "name": "job_post_velocity",
             "summary": "No public job-post record matched this company, so hiring velocity is treated as unknown.",
@@ -140,11 +230,7 @@ def build_job_post_signal(company_name: str, company_domain: str | None) -> dict
 
     examples = record.get("examples") or []
     ai_roles = int(record.get("ai_roles") or 0)
-    public_pages = record.get("source_pages") or [
-        f"https://www.builtin.com/company/{(company_domain or company_name).replace('.', '-')}/jobs",
-        f"https://wellfound.com/company/{(company_domain or company_name).replace('.', '-')}/jobs",
-        f"https://www.linkedin.com/company/{(company_domain or company_name).replace('.', '-')}/jobs",
-    ]
+    public_pages = record.get("source_pages") or default_public_pages
     source_refs = [
         build_source_ref(
             source_name="public_job_pages",
@@ -155,6 +241,24 @@ def build_job_post_signal(company_name: str, company_domain: str | None) -> dict
         )
         for page in public_pages
     ]
+
+    if scraped_pages:
+        source_refs.extend(_playwright_source_refs(scraped_pages))
+        observed_at = max(
+            [candidate for candidate in [
+                observed_at,
+                max((row.get("scraped_at") for row in scraped_pages if row.get("scraped_at")), default=None),
+            ] if candidate],
+            default=observed_at,
+        )
+        inferred_open_roles = _infer_open_roles_from_titles(scraped_pages)
+        if inferred_open_roles > open_roles:
+            open_roles = inferred_open_roles
+            examples = [
+                str(row.get("title") or "").strip()
+                for row in scraped_pages
+                if str(row.get("title") or "").strip()
+            ][:3] or examples
 
     if open_roles == 0:
         summary = "Public job-page snapshot shows zero open engineering roles in the last 60-day window."

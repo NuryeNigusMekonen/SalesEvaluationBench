@@ -74,6 +74,73 @@ def initialize_database() -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS source_signal_records (
+                record_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_key TEXT NOT NULL,
+                company_name TEXT NOT NULL,
+                company_domain TEXT,
+                source_name TEXT NOT NULL,
+                observed_at TEXT,
+                collected_at TEXT NOT NULL,
+                raw_payload_json TEXT NOT NULL,
+                normalized_payload_json TEXT NOT NULL,
+                UNIQUE(company_key, source_name)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS lead_qualification_records (
+                prospect_id TEXT PRIMARY KEY,
+                company_key TEXT NOT NULL,
+                company_name TEXT NOT NULL,
+                company_domain TEXT,
+                source_hit_count INTEGER NOT NULL DEFAULT 0,
+                qualification_score REAL NOT NULL DEFAULT 0,
+                qualification_status TEXT NOT NULL,
+                qualification_reason TEXT,
+                judge_reason TEXT,
+                governance_decision TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (prospect_id) REFERENCES prospects (prospect_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_source_signal_company
+            ON source_signal_records(company_key)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_qualification_status
+            ON lead_qualification_records(qualification_status, updated_at)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS correction_history_records (
+                correction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prospect_id TEXT,
+                source TEXT NOT NULL,
+                category TEXT NOT NULL,
+                trigger TEXT,
+                recommendation TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (prospect_id) REFERENCES prospects (prospect_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_correction_history_prospect
+            ON correction_history_records(prospect_id, created_at)
+            """
+        )
         _ensure_column(connection, "prospects", "contact_phone", "TEXT")
         _ensure_column(connection, "prospects", "primary_segment_label", "TEXT")
         _ensure_column(connection, "prospects", "segment_confidence", "REAL NOT NULL DEFAULT 0")

@@ -24,3 +24,46 @@ services:
         value: agent/data/snapshots/layoffs.json
       - key: LEADERSHIP_SNAPSHOT_PATH
         value: agent/data/snapshots/leadership.json
+      - key: ENRICHMENT_PREFER_LIVE_SOURCES
+        value: "true"
+      - key: CRUNCHBASE_LIVE_URL
+        value: https://news.google.com/rss/search?q=technology+startup+raises+funding&hl=en-US&gl=US&ceid=US:en
+      - key: JOB_POSTS_LIVE_URL
+        value: https://remoteok.com/api
+      - key: LAYOFFS_CSV_URL
+        value: https://news.google.com/rss/search?q=tech+layoffs&hl=en-US&gl=US&ceid=US:en
+      - key: LEADERSHIP_LIVE_URL
+        value: https://news.google.com/rss/search?q=technology+leadership+hire&hl=en-US&gl=US&ceid=US:en
+      - key: LEAD_REFRESH_USE_PLAYWRIGHT_JOB_SCRAPE
+        value: "true"
+
+  - type: cron
+    name: conversion-engine-weekly-refresh
+    runtime: python
+    schedule: "0 8 * * 1"
+    plan: free
+    buildCommand: "pip install uv && uv sync --frozen"
+    startCommand: "uv run python scripts/refresh_active_leads.py --max-companies 150"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: CRUNCHBASE_SNAPSHOT_PATH
+        value: agent/data/snapshots/crunchbase_companies.json
+      - key: JOB_POSTS_SNAPSHOT_PATH
+        value: agent/data/snapshots/job_posts.json
+      - key: LAYOFFS_SNAPSHOT_PATH
+        value: agent/data/snapshots/layoffs.json
+      - key: LEADERSHIP_SNAPSHOT_PATH
+        value: agent/data/snapshots/leadership.json
+      - key: ENRICHMENT_PREFER_LIVE_SOURCES
+        value: "true"
+      - key: CRUNCHBASE_LIVE_URL
+        value: https://news.google.com/rss/search?q=technology+startup+raises+funding&hl=en-US&gl=US&ceid=US:en
+      - key: JOB_POSTS_LIVE_URL
+        value: https://remoteok.com/api
+      - key: LAYOFFS_CSV_URL
+        value: https://news.google.com/rss/search?q=tech+layoffs&hl=en-US&gl=US&ceid=US:en
+      - key: LEADERSHIP_LIVE_URL
+        value: https://news.google.com/rss/search?q=technology+leadership+hire&hl=en-US&gl=US&ceid=US:en
+      - key: LEAD_REFRESH_USE_PLAYWRIGHT_JOB_SCRAPE
+        value: "true"

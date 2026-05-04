@@ -123,7 +123,12 @@ class EnrichmentService:
             return "abstain", round(confidence, 2)
         return segment, round(min(confidence, 0.94), 2)
 
-    def enrich(self, intake: LeadIntakeRequest) -> tuple[
+    def enrich(
+        self,
+        intake: LeadIntakeRequest,
+        *,
+        prefer_browser_job_scrape: bool = False,
+    ) -> tuple[
         ProspectRecord,
         HiringSignalBrief,
         CompetitorGapBrief,
@@ -138,6 +143,7 @@ class EnrichmentService:
         jobs_signal = build_job_post_signal(
             intake.company_name,
             intake.company_domain,
+            prefer_browser_scrape=prefer_browser_job_scrape,
         )
         layoff_signal = build_layoff_signal(
             intake.company_name,

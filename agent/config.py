@@ -69,16 +69,44 @@ class Settings:
     crunchbase_snapshot_path: Path = Path(
         os.getenv("CRUNCHBASE_SNAPSHOT_PATH", data_dir / "snapshots" / "crunchbase_companies.json")
     )
+    crunchbase_live_url: str = os.getenv("CRUNCHBASE_LIVE_URL", "")
     job_posts_snapshot_path: Path = Path(
         os.getenv("JOB_POSTS_SNAPSHOT_PATH", data_dir / "snapshots" / "job_posts.json")
     )
+    job_posts_live_url: str = os.getenv("JOB_POSTS_LIVE_URL", "")
     layoffs_snapshot_path: Path = Path(
         os.getenv("LAYOFFS_SNAPSHOT_PATH", data_dir / "snapshots" / "layoffs.json")
     )
     leadership_snapshot_path: Path = Path(
         os.getenv("LEADERSHIP_SNAPSHOT_PATH", data_dir / "snapshots" / "leadership.json")
     )
+    leadership_live_url: str = os.getenv("LEADERSHIP_LIVE_URL", "")
     layoffs_csv_url: str = os.getenv("LAYOFFS_CSV_URL", "")
+    enrichment_prefer_live_sources: bool = os.getenv("ENRICHMENT_PREFER_LIVE_SOURCES", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    lead_min_source_hits: int = int(os.getenv("LEAD_MIN_SOURCE_HITS", "2"))
+    lead_min_segment_confidence: float = float(os.getenv("LEAD_MIN_SEGMENT_CONFIDENCE", "0.65"))
+    lead_require_tenacious_pass: bool = os.getenv("LEAD_REQUIRE_TENACIOUS_PASS", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    lead_auto_refresh_on_seed_query: bool = os.getenv("LEAD_AUTO_REFRESH_ON_SEED_QUERY", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    lead_refresh_use_playwright_job_scrape: bool = os.getenv(
+        "LEAD_REFRESH_USE_PLAYWRIGHT_JOB_SCRAPE",
+        "true",
+    ).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     email_provider: str = os.getenv("EMAIL_PROVIDER", "mock")
     resend_api_key: str = os.getenv("RESEND_API_KEY", "")
     resend_from_email: str = os.getenv("RESEND_FROM_EMAIL", "drafts@tenacious.local")
