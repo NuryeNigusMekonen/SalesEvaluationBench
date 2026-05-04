@@ -111,6 +111,7 @@ class PolicyService:
         competitor_gap_brief: CompetitorGapBrief,
         *,
         trace_id: str | None = None,
+        correction_memory: list[str] | None = None,
     ) -> ConversationDecision:
         risk_flags: list[str] = []
 
@@ -200,6 +201,7 @@ class PolicyService:
                 "safe_gap_framing": competitor_gap_brief.safe_gap_framing,
                 "do_not_claim": hiring_signal_brief.do_not_claim,
                 "risk_flags": risk_flags,
+                "recommendation_memory": correction_memory or [],
             },
         )
 

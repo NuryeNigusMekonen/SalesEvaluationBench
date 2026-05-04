@@ -181,6 +181,8 @@ class GenerationService:
         system_prompt = (
             "You are the Tenacious email drafting copilot. Rewrite the provided safe scaffold into a stronger "
             "prospect-facing email while staying strictly grounded in the supplied facts. "
+            "When context includes recommendation_memory or correction_history, treat them as mandatory lessons from prior reviews and incorporate them. "
+            "Always prioritize the latest inbound message over older outreach framing. If the prospect already narrowed the need, do not reopen the same broad disambiguation; ask the next question one level deeper. "
             "Never invent funding, hiring, layoffs, leadership changes, competitor practices, pricing, or bench capacity. "
             "Never repeat, echo, or acknowledge pricing requests (fixed price, discount, savings) from the prospect — "
             "instead redirect to understanding their constraints without using any pricing language. "

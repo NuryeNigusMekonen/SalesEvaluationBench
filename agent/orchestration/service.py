@@ -12,6 +12,7 @@ from agent.channels.voice import voice_channel
 from agent.config import settings
 from agent.crm.hubspot import hubspot_client
 from agent.enrichment.service import enrichment_service
+from agent.enrichment.source_pipeline import source_pipeline_service
 from agent.enrichment.connectors import (
     crunchbase_connector,
     job_posts_connector,
@@ -19,6 +20,7 @@ from agent.enrichment.connectors import (
     leadership_connector,
 )
 from agent.evaluation.comparison_service import comparison_dry_run_enabled, comparison_mode_enabled
+from agent.evaluation.governance_courtroom import governance_runtime_status, review_candidate_action
 from agent.evaluation.tenacious_judge_adapter import review_before_action, runtime_status
 from agent.evaluation.tau2 import tau2_adapter
 from agent.generation.service import generation_service
@@ -41,6 +43,25 @@ from agent.scheduling.calcom import calcom_client
 from agent.storage.repository import ProspectRepository
 
 logger = logging.getLogger(__name__)
+
+_RISK_FLAG_RECOMMENDATIONS: dict[str, str] = {
+    "pricing_guardrail": "Do not quote custom discounts; ask one constraint-focused scoping question and route pricing scope to delivery lead.",
+    "offshore_concern": "Acknowledge offshore concern and respond with transcript-grounded delivery facts only; avoid generic vendor cliches.",
+    "capability_gap_intent": "Mirror the stated capability gap and narrow response to one concrete scoping dimension before proposing next step.",
+    "bench_mismatch_route_human": "Do not promise capacity when bench match is insufficient; escalate to human capacity review.",
+    "legal_handoff_required": "Route legal, compliance, references, and contract redlines to human review without partial commitments.",
+    "custom_pricing_handoff_required": "Treat custom multi-phase pricing and urgent concessions as human-only decisions.",
+    "impossible_capacity_pricing_claim_blocked": "Block impossible seniority-timeline-pricing combinations and request delivery-lead review.",
+    "segment_abstention": "Use research-check framing when segment confidence is low; avoid hard-fit claims.",
+    "omit_strong_competitor_gap_claims": "Frame competitor gaps as questions or observations, not verified claims.",
+    "style_validation_failed": "Fall back to concise 4-sentence format and keep language within style guide constraints.",
+}
+
+_GLOBAL_CORRECTION_MEMORY_SOURCES = [
+    "week2_governance",
+    "week8_handoff",
+    "week11_judge",
+]
 
 _T = TypeVar("_T")
 
@@ -136,6 +157,146 @@ class Orchestrator:
                 )
         return all_ok
 
+    def _risk_recommendation(self, risk_flag: str) -> str | None:
+        if risk_flag.startswith("style_violation:"):
+            return "Avoid style-guide violations from prior drafts and keep body under the configured length limit."
+        return _RISK_FLAG_RECOMMENDATIONS.get(risk_flag)
+
+    def _capability_focus_label(self, inbound_body: str) -> str | None:
+        lowered = inbound_body.lower()
+        if any(token in lowered for token in ("modeling", "fine-tuning", "fine tuning", "training", "inference", "evaluation")):
+            return "modeling"
+        if any(token in lowered for token in ("mlops", "ml ops", "model ops", "deployment", "serving", "monitoring", "experiment tracking")):
+            return "MLOps"
+        if any(token in lowered for token in ("data pipeline", "feature pipeline", "ingestion", "etl", "elt", "feature store", "training data")):
+            return "data pipeline"
+        if any(token in lowered for token in ("applied ml", "ml feature", "ml features", "forecasting", "classification", "document intelligence")):
+            return "applied ML feature delivery"
+        return None
+
+    def _progression_recommendation(
+        self,
+        *,
+        inbound_body: str,
+        reply_draft: str | None,
+    ) -> tuple[str | None, str | None]:
+        if not reply_draft:
+            return None, None
+        focus = self._capability_focus_label(inbound_body)
+        if not focus:
+            return None, None
+        lowered_reply = reply_draft.lower()
+        repeated_broad_prompt = (
+            "define the exact scope first" in lowered_reply
+            or "share your top priority" in lowered_reply
+        )
+        if not repeated_broad_prompt:
+            return None, None
+        recommendation = (
+            f"When a prospect already names {focus} as the gap, acknowledge it and ask the next narrowing question inside {focus} "
+            "instead of reopening the broad AI/ML scope split."
+        )
+        return focus, recommendation
+
+    def _persist_correction_memory(
+        self,
+        *,
+        prospect_id: str,
+        source: str,
+        category: str,
+        recommendation: str,
+        trigger: str | None = None,
+        metadata: dict[str, object] | None = None,
+    ) -> None:
+        existing = set(self.repository.recent_recommendation_memory(prospect_id, limit=50))
+        if recommendation in existing:
+            return
+        self.repository.add_correction_history(
+            prospect_id=prospect_id,
+            source=source,
+            category=category,
+            recommendation=recommendation,
+            trigger=trigger,
+            metadata=metadata,
+        )
+
+    def _capture_reply_corrections(
+        self,
+        *,
+        prospect_id: str,
+        risk_flags: list[str],
+        governance_review: dict[str, object],
+        judge_review: dict[str, object],
+        inbound_body: str,
+        reply_draft: str | None = None,
+    ) -> None:
+        remediation_plan = governance_review.get("remediation_plan")
+        if isinstance(remediation_plan, list):
+            for item in remediation_plan:
+                text = str(item).strip()
+                if not text:
+                    continue
+                self._persist_correction_memory(
+                    prospect_id=prospect_id,
+                    source="week2_governance",
+                    category="remediation_plan",
+                    recommendation=text,
+                    trigger=str(governance_review.get("primary_risk_focus") or "governance_review"),
+                    metadata={
+                        "final_decision": governance_review.get("final_decision"),
+                        "review_id": governance_review.get("review_id"),
+                    },
+                )
+
+        for flag in risk_flags:
+            recommendation = self._risk_recommendation(flag)
+            if not recommendation:
+                continue
+            self._persist_correction_memory(
+                prospect_id=prospect_id,
+                source="week8_handoff",
+                category="risk_flag_learning",
+                recommendation=recommendation,
+                trigger=flag,
+                metadata={"inbound_preview": inbound_body[:120]},
+            )
+
+        judge_reason = str(judge_review.get("reason") or "").strip()
+        judge_verdict = str(judge_review.get("verdict") or "").strip().lower()
+        if judge_reason and judge_verdict and judge_verdict not in {"allow", "passed", "not_available"}:
+            self._persist_correction_memory(
+                prospect_id=prospect_id,
+                source="week11_judge",
+                category="judge_feedback",
+                recommendation=judge_reason,
+                trigger=judge_verdict,
+                metadata={},
+            )
+
+        focus, progression_recommendation = self._progression_recommendation(
+            inbound_body=inbound_body,
+            reply_draft=reply_draft,
+        )
+        if progression_recommendation:
+            self._persist_correction_memory(
+                prospect_id=prospect_id,
+                source="week8_handoff",
+                category="conversation_progression",
+                recommendation=progression_recommendation,
+                trigger=f"capability_focus:{focus}",
+                metadata={"inbound_preview": inbound_body[:120]},
+            )
+
+    def _load_recommendation_memory(self, prospect_id: str | None, *, limit: int = 6) -> list[str]:
+        return self.repository.recent_recommendation_memory_blended(
+            prospect_id=prospect_id,
+            limit=limit,
+            local_limit=limit,
+            global_limit=limit,
+            global_min_occurrences=1,
+            global_sources=_GLOBAL_CORRECTION_MEMORY_SOURCES,
+        )
+
     # ------------------------------------------------------------------
     # Core pipeline
     # ------------------------------------------------------------------
@@ -143,11 +304,17 @@ class Orchestrator:
     def intake_and_enrich(self, intake: LeadIntakeRequest) -> ProspectEnrichmentResponse:
         prospect, hiring_signal_brief, competitor_gap_brief = enrichment_service.enrich(intake)
         trace_id = self.trace_logger.new_trace_id()
+        existing = self.repository.find_by_company(prospect.company_name, prospect.company_domain)
+        correction_memory = self._load_recommendation_memory(
+            existing.prospect_id if existing else None,
+            limit=6,
+        )
         decision = policy_service.draft_initial_decision(
             prospect=prospect,
             hiring_signal_brief=hiring_signal_brief,
             competitor_gap_brief=competitor_gap_brief,
             trace_id=trace_id,
+            correction_memory=correction_memory,
         )
 
         self.trace_logger.log(
@@ -189,7 +356,12 @@ class Orchestrator:
             competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
         )
         self._handle_tool_result(email_result, snapshot.prospect.prospect_id, "initial_email_send", critical=True)
-        initial_email_event = "email_sent" if email_result.status != "skipped" else "initial_email_blocked"
+        if email_result.status == "executed":
+            initial_email_event = "email_sent"
+        elif email_result.status == "previewed":
+            initial_email_event = "initial_email_previewed"
+        else:
+            initial_email_event = "initial_email_blocked"
         self.repository.record_interaction_event(
             snapshot.prospect.prospect_id,
             initial_email_event,
@@ -475,7 +647,18 @@ class Orchestrator:
         # can route to human review via the risk_flags list.
         # ------------------------------------------------------------------
         additional_risk_flags: list[str] = []
-        if raw_decision.next_action in {"send_email", "handoff_human"} and raw_decision.reply_draft:
+        effective_next_action = raw_decision.next_action
+        effective_channel = raw_decision.channel
+        effective_needs_human = raw_decision.needs_human
+        reply_artifact_ref: str | None = None
+        judge_review: dict[str, object] = {}
+        governance_review: dict[str, object] = {}
+
+        if raw_decision.next_action == "handoff_human" and raw_decision.reply_draft:
+            # Keep human-handoff drafts visible to operators, but do not auto-deliver them.
+            additional_risk_flags.append("reply_draft_handoff_only")
+
+        if raw_decision.next_action == "send_email" and raw_decision.reply_draft:
             subject, reply_body = self._extract_email_payload(raw_decision.reply_draft)
             reply_subject = f"Re: {subject}" if not subject.lower().startswith("re:") else subject
             reply_email_result = email_channel.send(
@@ -486,6 +669,7 @@ class Orchestrator:
                 prospect_context=snapshot.prospect.model_dump(mode="json"),
                 hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
                 competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
+                inbound_body=message.body,
             )
             ok = self._handle_tool_result(
                 reply_email_result,
@@ -495,22 +679,105 @@ class Orchestrator:
             )
             if not ok:
                 additional_risk_flags.append("reply_email_send_failed")
+                effective_next_action = "handoff_human"
+                effective_channel = "human"
+                effective_needs_human = True
             else:
-                self.repository.record_interaction_event(
-                    snapshot.prospect.prospect_id,
-                    "reply_email_sent",
-                    channel="email",
-                    provider=settings.email_provider,
-                    payload={"subject": reply_subject, "result": reply_email_result.message},
-                )
+                reply_artifact_ref = reply_email_result.artifact_ref
+                if reply_email_result.status == "executed":
+                    self.repository.record_interaction_event(
+                        snapshot.prospect.prospect_id,
+                        "reply_email_sent",
+                        channel="email",
+                        provider=settings.email_provider,
+                        payload={"subject": reply_subject, "result": reply_email_result.message},
+                    )
+                elif reply_email_result.status == "skipped":
+                    additional_risk_flags.append("reply_email_blocked_by_policy")
+                    effective_next_action = "handoff_human"
+                    effective_channel = "human"
+                    effective_needs_human = True
+                elif reply_email_result.status == "previewed":
+                    additional_risk_flags.append("reply_email_preview_only")
+                    effective_next_action = "handoff_human"
+                    effective_channel = "human"
+                    effective_needs_human = True
+
+        artifact_payload = self._read_artifact_json(reply_artifact_ref)
+        if artifact_payload:
+            judge_review = self._safe_dict_payload(artifact_payload.get("judge_review"))
+            governance_review = self._safe_dict_payload(artifact_payload.get("governance_review"))
+
+        if not judge_review:
+            fallback_reason = (
+                str(artifact_payload.get("week11_status"))
+                if artifact_payload and artifact_payload.get("week11_status")
+                else "Week 11 judge review not produced for this reply path."
+            )
+            judge_review = {
+                "verdict": "not_available",
+                "reason": fallback_reason,
+            }
+
+        # Fallback for handoff-only drafts: provide a top-level Week2 review payload
+        # even when no send artifact exists.
+        if not governance_review and raw_decision.reply_draft:
+            subject, reply_body = self._extract_email_payload(raw_decision.reply_draft)
+            draft_text = f"Subject: {subject}\n\n{reply_body}" if reply_body else raw_decision.reply_draft
+            draft_gov = review_candidate_action(
+                {
+                    "prospect_context": snapshot.prospect.model_dump(mode="json"),
+                    "hiring_signal_brief": snapshot.hiring_signal_brief.model_dump(mode="json"),
+                    "competitor_gap_brief": snapshot.competitor_gap_brief.model_dump(mode="json"),
+                    "agent_output": draft_text,
+                    "inbound_body": message.body,
+                    "action_type": "email_reply",
+                    "channel": "email",
+                    "prospect_id": snapshot.prospect.prospect_id,
+                }
+            )
+            governance_review = {
+                "review_id": draft_gov.review_id,
+                "final_verdict": draft_gov.final_verdict,
+                "final_decision": draft_gov.final_decision,
+                "primary_risk_focus": draft_gov.primary_risk_focus,
+                "overall_score": draft_gov.overall_score,
+                "remediation_plan": draft_gov.remediation_plan,
+                "rules_applied": draft_gov.rules_applied,
+            }
+
+        merged_risk_flags = raw_decision.risk_flags + additional_risk_flags
+        if effective_next_action == "handoff_human":
+            handoff_reason = self._delivery_route_reason(merged_risk_flags, governance_review)
+            judge_review = {
+                **judge_review,
+                "verdict": "needs_human_review",
+                "reason": handoff_reason,
+            }
+            governance_review = self._delivery_aligned_governance_review(
+                governance_review,
+                handoff_reason,
+            )
 
         decision = ConversationDecision(
-            next_action=raw_decision.next_action,
-            channel=raw_decision.channel,
+            next_action=effective_next_action,
+            channel=effective_channel,
             reply_draft=raw_decision.reply_draft,
-            needs_human=raw_decision.needs_human or bool(additional_risk_flags),
-            risk_flags=raw_decision.risk_flags + additional_risk_flags,
+            needs_human=effective_needs_human or bool(additional_risk_flags),
+            risk_flags=merged_risk_flags,
             trace_tags=["inbound_reply", "policy_guarded", "central_handoff_manager"],
+            reply_artifact_ref=reply_artifact_ref,
+            judge_review=judge_review,
+            governance_review=governance_review,
+        )
+
+        self._capture_reply_corrections(
+            prospect_id=snapshot.prospect.prospect_id,
+            risk_flags=decision.risk_flags,
+            governance_review=governance_review,
+            judge_review=judge_review,
+            inbound_body=message.body,
+            reply_draft=decision.reply_draft,
         )
 
         reply_decision_path = settings.outbox_dir / f"{snapshot.prospect.prospect_id}_reply_decision.json"
@@ -587,6 +854,27 @@ class Orchestrator:
         if snapshot is None:
             self.trace_logger.log("calendar_confirmation_unmatched", confirmation)
             return {"ok": False, "matched": False, "reason": "No prospect matched the booking confirmation."}
+
+        governance_review = review_candidate_action(
+            {
+                "prospect_context": snapshot.prospect.model_dump(mode="json"),
+                "hiring_signal_brief": snapshot.hiring_signal_brief.model_dump(mode="json"),
+                "competitor_gap_brief": snapshot.competitor_gap_brief.model_dump(mode="json"),
+                "agent_output": json.dumps(confirmation, ensure_ascii=False),
+                "action_type": "calendar_action",
+                "channel": "calendar",
+                "prospect_id": snapshot.prospect.prospect_id,
+            }
+        )
+        if governance_review.enforcement_applied and governance_review.final_decision != "allow":
+            return {
+                "ok": False,
+                "matched": True,
+                "prospect_id": snapshot.prospect.prospect_id,
+                "route_to_review": governance_review.final_decision == "human_review",
+                "reason": governance_review.remediation_plan[0],
+                "governance_review_id": governance_review.review_id,
+            }
 
         review = review_before_action(
             {
@@ -696,6 +984,192 @@ class Orchestrator:
     def list_prospects(self) -> list[ProspectRecord]:
         return self.repository.list_all()
 
+    def list_active_prospects(self, limit: int = 200) -> list[ProspectRecord]:
+        return self.repository.list_active(limit=limit)
+
+    def refresh_active_leads_from_sources(self, *, max_companies: int = 100) -> dict[str, object]:
+        consolidated, normalized_rows = source_pipeline_service.collect_normalized_signals()
+
+        for row in normalized_rows:
+            self.repository.save_source_signal_record(
+                company_key=row["company_key"],
+                company_name=row["company_name"],
+                company_domain=row["company_domain"] or None,
+                source_name=row["source_name"],
+                observed_at=row.get("observed_at"),
+                collected_at=row["collected_at"],
+                raw_payload_json=row["raw_payload_json"],
+                normalized_payload_json=row["normalized_payload_json"],
+            )
+
+        active_count = 0
+        review_count = 0
+        rejected_count = 0
+        processed = 0
+        companies = sorted(
+            consolidated,
+            key=lambda item: (item.get("source_hit_count", 0), item.get("funding_musd", 0)),
+            reverse=True,
+        )[:max_companies]
+
+        for company in companies:
+            processed += 1
+            domain = company.get("company_domain") or ""
+            contact_email = company.get("contact_email") or (f"partnerships@{domain}" if domain else None)
+            contact_name = company.get("leadership_person") or "Prospect Team"
+
+            intake = LeadIntakeRequest(
+                company_name=company["company_name"],
+                company_domain=domain or None,
+                contact_name=contact_name,
+                contact_email=contact_email,
+                source="source_ingestion",
+            )
+
+            prospect, hiring_signal_brief, competitor_gap_brief = enrichment_service.enrich(
+                intake,
+                prefer_browser_job_scrape=settings.lead_refresh_use_playwright_job_scrape,
+            )
+            existing = self.repository.find_by_company(prospect.company_name, prospect.company_domain)
+            if existing:
+                prospect.prospect_id = existing.prospect_id
+                prospect.created_at = existing.created_at
+
+            trace_id = self.trace_logger.new_trace_id()
+            correction_memory = self._load_recommendation_memory(
+                existing.prospect_id if existing else None,
+                limit=6,
+            )
+            initial_decision = policy_service.draft_initial_decision(
+                prospect=prospect,
+                hiring_signal_brief=hiring_signal_brief,
+                competitor_gap_brief=competitor_gap_brief,
+                trace_id=trace_id,
+                correction_memory=correction_memory,
+            )
+
+            source_hit_count = int(company.get("source_hit_count") or 0)
+            source_ok = source_hit_count >= settings.lead_min_source_hits
+            segment_ok = (
+                prospect.primary_segment != "abstain"
+                and prospect.segment_confidence >= settings.lead_min_segment_confidence
+            )
+            bench_ok = hiring_signal_brief.bench_match.sufficient
+
+            candidate_action = {
+                "prospect_context": prospect.model_dump(mode="json"),
+                "hiring_signal_brief": hiring_signal_brief.model_dump(mode="json"),
+                "competitor_gap_brief": competitor_gap_brief.model_dump(mode="json"),
+                "agent_output": initial_decision.reply_draft,
+                "action_type": "email",
+                "channel": "email",
+                "prospect_id": prospect.prospect_id,
+            }
+            judge_result = review_before_action(candidate_action)
+            governance_review = review_candidate_action(candidate_action)
+            judge_allow = bool(judge_result.get("allow"))
+            governance_allow = governance_review.final_decision == "allow"
+            tenacious_pass = judge_allow and governance_allow
+
+            coverage_score = source_pipeline_service.source_coverage_score(source_hit_count)
+            qualification_score = round(
+                min(
+                    1.0,
+                    (coverage_score * 0.45)
+                    + (float(prospect.segment_confidence) * 0.35)
+                    + ((float(prospect.ai_maturity_score) / 3.0) * 0.1)
+                    + (0.1 if bench_ok else 0.0),
+                ),
+                3,
+            )
+
+            if not source_ok:
+                qualification_status = "rejected_low_source_evidence"
+                qualification_reason = "Insufficient source coverage across the 4 enrichment sources."
+                rejected_count += 1
+            elif not segment_ok:
+                qualification_status = "rejected_low_fit"
+                qualification_reason = "Segment confidence below activation threshold or segment is abstain."
+                rejected_count += 1
+            elif settings.lead_require_tenacious_pass and not tenacious_pass:
+                if governance_review.final_decision == "human_review" or bool(judge_result.get("route_to_review")):
+                    qualification_status = "qualified_human_review_required"
+                    review_count += 1
+                else:
+                    qualification_status = "qualified_blocked_policy"
+                    rejected_count += 1
+                qualification_reason = "Qualified by source and fit, but did not pass Tenacious guardrails."
+            else:
+                qualification_status = "active_qualified_tenacious_pass"
+                qualification_reason = "Qualified by source evidence, fit, and Tenacious guardrail pass."
+                active_count += 1
+
+            prospect.status = qualification_status
+            snapshot = self.repository.save_snapshot(
+                prospect=prospect,
+                hiring_signal_brief=hiring_signal_brief,
+                competitor_gap_brief=competitor_gap_brief,
+                initial_decision=initial_decision,
+                trace_id=trace_id,
+            )
+            self.repository.save_lead_qualification_record(
+                prospect_id=snapshot.prospect.prospect_id,
+                company_key=company["company_key"],
+                company_name=snapshot.prospect.company_name,
+                company_domain=snapshot.prospect.company_domain,
+                source_hit_count=source_hit_count,
+                qualification_score=qualification_score,
+                qualification_status=qualification_status,
+                qualification_reason=qualification_reason,
+                judge_reason=str(judge_result.get("reason") or ""),
+                governance_decision=governance_review.final_decision,
+            )
+            for plan_item in governance_review.remediation_plan:
+                text = str(plan_item).strip()
+                if not text:
+                    continue
+                self._persist_correction_memory(
+                    prospect_id=snapshot.prospect.prospect_id,
+                    source="week2_governance",
+                    category="qualification_review",
+                    recommendation=text,
+                    trigger=str(governance_review.primary_risk_focus),
+                    metadata={"final_decision": governance_review.final_decision},
+                )
+            if not judge_allow:
+                self._persist_correction_memory(
+                    prospect_id=snapshot.prospect.prospect_id,
+                    source="week11_judge",
+                    category="qualification_review",
+                    recommendation=str(judge_result.get("reason") or "Judge review blocked activation."),
+                    trigger="qualification_blocked",
+                    metadata={
+                        "route_to_review": bool(judge_result.get("route_to_review")),
+                        "governance_decision": governance_review.final_decision,
+                    },
+                )
+            self.trace_logger.log(
+                "lead_qualification_refreshed",
+                {
+                    "prospect_id": snapshot.prospect.prospect_id,
+                    "company_name": snapshot.prospect.company_name,
+                    "source_hit_count": source_hit_count,
+                    "segment_confidence": snapshot.prospect.segment_confidence,
+                    "qualification_score": qualification_score,
+                    "qualification_status": qualification_status,
+                    "judge_allow": judge_allow,
+                    "governance_decision": governance_review.final_decision,
+                },
+                trace_id=trace_id,
+            )
+
+        return {
+            "processed": processed,
+            "active": active_count,
+            "needs_review": review_count,
+            "rejected": rejected_count,
+        }
+
     def get_snapshot(self, prospect_id: str) -> ProspectEnrichmentResponse | None:
         return self.repository.get_snapshot(prospect_id)
 
@@ -758,6 +1232,7 @@ class Orchestrator:
             latest_interaction_events=latest_events,
             latest_artifacts=latest_artifacts,
             tenacious_judge_runtime=runtime_status(),
+            tenacious_governance_runtime=governance_runtime_status(),
         )
 
     def tool_statuses(self) -> list[ToolStatus]:
@@ -783,6 +1258,137 @@ class Orchestrator:
             body = "\n".join(lines[1:]).strip()
             return subject, body
         return "Tenacious research note", draft
+
+    def _safe_dict_payload(self, value: object) -> dict[str, object]:
+        return value if isinstance(value, dict) else {}
+
+    def _delivery_route_reason(
+        self,
+        risk_flags: list[str],
+        governance_review: dict[str, object] | None = None,
+    ) -> str:
+        gov = governance_review if isinstance(governance_review, dict) else {}
+        decision = str(gov.get("final_decision") or "").lower()
+        risk_focus = str(gov.get("primary_risk_focus") or "").strip()
+        rules = [
+            str(item)
+            for item in (gov.get("rules_applied") or [])
+            if str(item).strip()
+        ] if isinstance(gov.get("rules_applied"), list) else []
+
+        if decision == "block":
+            if "opt_out_override" in rules:
+                return (
+                    "Blocked before delivery: hard-no/opt-out integrity policy was triggered, "
+                    "so suppression-safe handling is required before any send."
+                )
+            if "security_override" in rules:
+                return (
+                    "Blocked before delivery: pricing/scope integrity policy was triggered, "
+                    "so manual delivery-lead handling is required."
+                )
+            focus_text = risk_focus.replace("_", " ").strip() if risk_focus else "runtime governance policy"
+            return f"Blocked before delivery: {focus_text} requires policy-safe handling before any send."
+
+        if decision == "human_review":
+            if risk_focus and risk_focus != "delivery_truth_gate":
+                focus_text = risk_focus.replace("_", " ").strip()
+                return (
+                    f"Routed to human before delivery: {focus_text} requires delivery-lead review "
+                    "before outbound send."
+                )
+
+        ordered_flags = [str(flag) for flag in risk_flags]
+        if "legal_handoff_required" in ordered_flags:
+            return (
+                "Routed to human before delivery: legal/compliance/reference requests require "
+                "delivery-lead review before outbound send."
+            )
+        if "custom_pricing_handoff_required" in ordered_flags:
+            return (
+                "Routed to human before delivery: custom multi-phase pricing or concession terms "
+                "must be reviewed by a delivery lead."
+            )
+        if "impossible_capacity_pricing_claim_blocked" in ordered_flags:
+            return (
+                "Routed to human before delivery: requested timeline/seniority/pricing combination "
+                "requires manual capacity review."
+            )
+        if "hard_no_route_human" in ordered_flags:
+            return (
+                "Routed to human before delivery: prospect preference/opt-out style request requires "
+                "manual handling before any response."
+            )
+        if "reply_email_blocked_by_policy" in ordered_flags:
+            return "Routed to human before delivery: runtime policy checks blocked outbound email send."
+        if "reply_email_preview_only" in ordered_flags:
+            return "Routed to human before delivery: reply remained preview-only and was not sent live."
+        if "reply_email_send_failed" in ordered_flags:
+            return "Routed to human before delivery: outbound email send failed at runtime."
+        return "Routed to human before delivery: runtime guardrails required manual review before send."
+
+    def _delivery_aligned_governance_review(
+        self,
+        governance_review: dict[str, object],
+        reason: str,
+    ) -> dict[str, object]:
+        aligned = governance_review.copy() if isinstance(governance_review, dict) else {}
+        existing_rules = aligned.get("rules_applied")
+        rules = (
+            [str(item) for item in existing_rules if str(item).strip()]
+            if isinstance(existing_rules, list)
+            else []
+        )
+        decision = str(aligned.get("final_decision") or "").lower()
+        risk_focus = str(aligned.get("primary_risk_focus") or "").lower()
+        strict_block = (
+            decision == "block"
+            or "opt_out_override" in rules
+            or "security_override" in rules
+            or risk_focus in {"unsupported_pricing_or_scope_claim", "hard_no_sequence_integrity"}
+        )
+
+        verdict = str(aligned.get("final_verdict") or "").lower()
+        if strict_block:
+            aligned["final_verdict"] = "fail"
+            aligned["final_decision"] = "block"
+        else:
+            if verdict in {"", "pass"}:
+                aligned["final_verdict"] = "needs_human_review"
+            aligned["final_decision"] = "human_review"
+
+        try:
+            numeric_score = float(aligned.get("overall_score", 3.2))
+        except (TypeError, ValueError):
+            numeric_score = 3.2
+        aligned["overall_score"] = round(min(numeric_score, 3.2), 2) if not strict_block else round(numeric_score, 2)
+
+        existing_remediation = aligned.get("remediation_plan")
+        remediation = (
+            [str(item) for item in existing_remediation if str(item).strip()]
+            if isinstance(existing_remediation, list)
+            else []
+        )
+        aligned["remediation_plan"] = [reason, *[item for item in remediation if item != reason]]
+
+        if "delivery_truth_gate" not in rules:
+            rules.append("delivery_truth_gate")
+        aligned["rules_applied"] = rules
+        if not aligned.get("primary_risk_focus") and not strict_block:
+            aligned["primary_risk_focus"] = "delivery_truth_gate"
+        return aligned
+
+    def _read_artifact_json(self, artifact_ref: str | None) -> dict[str, object]:
+        if not artifact_ref:
+            return {}
+        path = Path(artifact_ref)
+        if not path.exists():
+            return {}
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        return payload if isinstance(payload, dict) else {}
 
     def _summarize_event_payload(self, payload: dict) -> str | None:
         if not payload:

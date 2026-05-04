@@ -25,6 +25,7 @@ from agent.schemas.briefs import (
     HiringSignalBrief,
 )
 from agent.schemas.prospect import ProspectRecord, SignalConfidence
+from agent.schemas.tools import ToolExecutionResult
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -397,6 +398,241 @@ def test_bench_mismatch_reply_does_not_promise_capacity() -> None:
         assert phrase not in body_lower, (
             f"Bench mismatch reply must not promise capacity; found: {phrase!r}"
         )
+
+
+def test_sms_request_without_phone_asks_for_number_and_skips_sms() -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    snapshot_like = type("S", (), {
+        "prospect": _minimal_prospect(),
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="Can you send the booking link by SMS to my phone?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "book_meeting"
+    assert "sms_skipped:no_phone_on_file" in decision.risk_flags
+    body_lower = decision.reply_draft.lower()
+    assert "share the best mobile number" in body_lower
+    assert "i'll text you" not in body_lower
+    assert "https://cal.com/" in decision.reply_draft
+
+
+def test_first_sms_request_shares_booking_link_by_email_before_sms(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    prospect = _minimal_prospect().model_copy(
+        update={
+            "prospect_id": "pros_sms_seq_first_turn",
+            "contact_phone": "+254700000000",
+        }
+    )
+    snapshot_like = type("S", (), {
+        "prospect": prospect,
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    called = {"sms": False}
+
+    def _unexpected_sms(*args, **kwargs):
+        called["sms"] = True
+        return ToolExecutionResult(
+            name="sms",
+            mode="mock",
+            status="executed",
+            message="mock sms sent",
+            artifact_ref="mock-sms-artifact",
+        )
+
+    monkeypatch.setattr(manager, "prepare_warm_sms_handoff", _unexpected_sms)
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="Can you send the booking link by SMS to my phone?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "book_meeting"
+    assert called["sms"] is False
+    assert "sms_skipped:booking_link_not_yet_shared_by_email" in decision.risk_flags
+    body_lower = decision.reply_draft.lower()
+    assert "i'll text you" not in body_lower
+    assert "share the booking link by email first" in body_lower
+    assert "https://cal.com/" in decision.reply_draft
+
+
+def test_sms_request_after_booking_link_share_can_attempt_sms(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    prospect = _minimal_prospect().model_copy(
+        update={
+            "prospect_id": "pros_sms_seq_after_share",
+            "contact_phone": "+254700000000",
+        }
+    )
+    snapshot_like = type("S", (), {
+        "prospect": prospect,
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    repo.record_interaction_event(prospect.prospect_id, "email_reply_received", channel="email", provider="email")
+    repo.record_interaction_event(prospect.prospect_id, "booking_link_shared", channel="email", provider="mock")
+
+    monkeypatch.setattr(
+        manager,
+        "prepare_warm_sms_handoff",
+        lambda *args, **kwargs: ToolExecutionResult(
+            name="sms",
+            mode="mock",
+            status="executed",
+            message="SMS sent",
+            artifact_ref="mock-sms-artifact",
+        ),
+    )
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="Can you send the booking link by SMS to my phone?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "book_meeting"
+    assert "sms_skipped:booking_link_not_yet_shared_by_email" not in decision.risk_flags
+    assert "sent the discovery-call booking link by sms" in decision.reply_draft.lower()
+
+
+def test_generic_sms_request_after_booking_link_share_does_not_resend_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    prospect = _minimal_prospect().model_copy(
+        update={
+            "prospect_id": "pros_sms_seq_generic_request",
+            "contact_phone": "+254700000000",
+        }
+    )
+    snapshot_like = type("S", (), {
+        "prospect": prospect,
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    repo.record_interaction_event(prospect.prospect_id, "email_reply_received", channel="email", provider="email")
+    repo.record_interaction_event(prospect.prospect_id, "booking_link_shared", channel="email", provider="mock")
+
+    called = {"sms": False}
+
+    def _unexpected_sms(*args, **kwargs):
+        called["sms"] = True
+        return ToolExecutionResult(
+            name="sms",
+            mode="mock",
+            status="executed",
+            message="SMS sent",
+            artifact_ref="mock-sms-artifact",
+        )
+
+    monkeypatch.setattr(manager, "prepare_warm_sms_handoff", _unexpected_sms)
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="Can you send an SMS to my phone?",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "send_email"
+    assert called["sms"] is False
+    assert "sms_request_needs_specific_logistics" in decision.risk_flags
+    body_lower = decision.reply_draft.lower()
+    assert "already shared the booking link on email" in body_lower
+    assert "resent the same link by sms" not in body_lower
+
+
+def test_sms_content_request_does_not_resend_booking_link(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent.orchestration.handoff import ChannelHandoffManager
+    from agent.storage.repository import ProspectRepository
+    from agent.schemas.prospect import InboundMessageRequest
+
+    repo = ProspectRepository()
+    manager = ChannelHandoffManager(repo)
+
+    prospect = _minimal_prospect().model_copy(
+        update={
+            "prospect_id": "pros_sms_seq_content_request",
+            "contact_phone": "+254700000000",
+        }
+    )
+    snapshot_like = type("S", (), {
+        "prospect": prospect,
+        "hiring_signal_brief": _hiring_brief(),
+        "competitor_gap_brief": _competitor_brief(),
+    })()
+
+    repo.record_interaction_event(prospect.prospect_id, "email_reply_received", channel="email", provider="email")
+    repo.record_interaction_event(prospect.prospect_id, "booking_link_shared", channel="email", provider="mock")
+
+    called = {"sms": False}
+
+    def _unexpected_sms(*args, **kwargs):
+        called["sms"] = True
+        return ToolExecutionResult(
+            name="sms",
+            mode="mock",
+            status="executed",
+            message="SMS sent",
+            artifact_ref="mock-sms-artifact",
+        )
+
+    monkeypatch.setattr(manager, "prepare_warm_sms_handoff", _unexpected_sms)
+
+    message = InboundMessageRequest(
+        contact_email="elena@alphatest.io",
+        channel="email",
+        body="so can you text me on sms that what offer you are going to give me",
+    )
+
+    decision, _ = manager.route_inbound_message(snapshot_like, message)
+
+    assert decision.next_action == "send_email"
+    assert called["sms"] is False
+    assert "sms_logistics_only" in decision.risk_flags
+    body_lower = decision.reply_draft.lower()
+    assert "sms for booking logistics" in body_lower
+    assert "discovery-call booking link" not in body_lower
 
 
 # ---------------------------------------------------------------------------

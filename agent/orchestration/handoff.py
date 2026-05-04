@@ -10,23 +10,59 @@ from agent.seed.loader import seed_materials
 from agent.scheduling.calcom import calcom_client
 from agent.scheduling.context_brief import context_brief_generator
 from agent.storage.repository import ProspectRepository
+import re
 
 # ---------------------------------------------------------------------------
 # SMS eligibility policy
 # ---------------------------------------------------------------------------
-# SMS is only used when AT LEAST ONE of the following conditions is true:
-#   1. The prospect explicitly asks to be contacted via SMS/text/WhatsApp/phone.
-#   2. The prospect requests fast scheduling AND a phone number is on file.
-#   3. The conversation is already warm (email_reply_received recorded) AND
-#      the current message is scheduling-focused.
+# SMS is only used after the thread is already warm AND the booking link has
+# first been delivered by email on a prior turn. Explicit SMS requests do not
+# bypass that sequencing rule.
 #
-# SMS is never sent on initial outreach (no email_reply_received → can_send_sms=False).
-# SMS is never sent just because an email reply exists; scheduling intent is required.
+# Practical effect:
+#   1. First scheduling turn: share booking link by email.
+#   2. Later turn: if the prospect asks for SMS/text and a phone number exists,
+#      SMS may be attempted.
+#
+# SMS is never sent on initial outreach.
+# SMS is never used to carry the first booking link.
 # ---------------------------------------------------------------------------
 
 _SMS_OPT_IN_TOKENS = ("sms", "text me", "whatsapp", "call me", "phone me")
 _VOICE_OPT_IN_TOKENS = ("voice", "phone call", "give me a call", "ring me", "call me", "phone me")
 _SCHEDULING_TOKENS = ("call", "calendar", "meet", "meeting", "schedule", "next week", "tomorrow", "book")
+_SMS_OPT_IN_PATTERN = re.compile(
+    r"\b(?:sms|text me|text now|send(?: me)?(?: an?)? (?:sms|text)|can (?:you|u) text|whatsapp|call me|phone me)\b",
+    re.IGNORECASE,
+)
+_SMS_LOGISTICS_HINT_TOKENS = (
+    "link",
+    "booking",
+    "book",
+    "calendar",
+    "slot",
+    "time",
+    "meeting",
+    "call",
+    "schedule",
+)
+_SMS_CONTENT_REQUEST_TOKENS = (
+    "offer",
+    "pricing",
+    "price",
+    "cost",
+    "quote",
+    "details",
+    "detail",
+    "overview",
+    "information",
+    "info",
+    "proposal",
+    "services",
+    "what do you",
+    "what offer",
+    "what are you going",
+)
 
 # ---------------------------------------------------------------------------
 # Pricing objection tokens — match before checking for scheduling intent
@@ -60,10 +96,133 @@ _DIFFERENTIATION_TOKENS = (
     "different from", "why are you different",
 )
 
+_CAPABILITY_TOKENS = (
+    "capability gap",
+    "ai/ml capability",
+    "ai ml capability",
+    "machine learning engineer",
+    "ml engineer",
+    "ai engineer",
+    "need ml",
+    "need ai",
+)
+
+_MODELING_FOCUS_TOKENS = (
+    "modeling",
+    "model gap",
+    "model quality",
+    "fine-tuning",
+    "fine tuning",
+    "training",
+    "inference",
+    "evaluation",
+)
+
+_MLOPS_FOCUS_TOKENS = (
+    "mlops",
+    "ml ops",
+    "model ops",
+    "deployment",
+    "serving",
+    "monitoring",
+    "experiment tracking",
+)
+
+_DATA_PIPELINE_FOCUS_TOKENS = (
+    "data pipeline",
+    "data pipelines",
+    "feature pipeline",
+    "feature pipelines",
+    "ingestion",
+    "etl",
+    "elt",
+    "feature store",
+    "training data",
+)
+
+_APPLIED_ML_FOCUS_TOKENS = (
+    "applied ml",
+    "ml feature",
+    "ml features",
+    "ai feature",
+    "ai features",
+    "recommendation",
+    "forecasting",
+    "classification",
+    "document intelligence",
+)
+
 _UPDATE_TOKENS = (
     "any update", "do you have an update", "following do you have an update",
     "checking for an update", "checking on this", "where do things stand",
 )
+
+_LEGAL_HANDOFF_TOKENS = (
+    "dpa",
+    "data processing addendum",
+    "msa",
+    "redline",
+    "redlines",
+    "contract terms",
+    "legal terms",
+    "indemnity",
+    "soc2",
+    "hipaa",
+    "security questionnaire",
+    "security packet",
+    "compliance proof",
+    "client reference",
+    "named reference",
+)
+
+_CUSTOM_PRICING_SCOPE_TOKENS = (
+    "custom volume pricing",
+    "volume pricing",
+    "across phases",
+    "multi-phase",
+    "multiphase",
+    "bulk pricing",
+    "custom pricing",
+    "enterprise pricing",
+)
+
+_URGENT_CONCESSION_TOKENS = (
+    "best discount",
+    "lock it today",
+    "lock today",
+    "today only",
+    "urgent pricing",
+    "special price now",
+)
+
+_IMPOSSIBLE_CAPACITY_PATTERN = re.compile(
+    r"\b(?:promise|commit)\b.*\b\d{1,4}\b.*\b(?:senior|seniour|senoiur|senoir|staff|principal)\b.*\b(?:\d{1,3}\s*(?:day|days|week|weeks))\b.*\b(?:junior pricing|junior price|floor pricing|discount)\b",
+    re.IGNORECASE,
+)
+
+_CAPACITY_HEADCOUNT_PATTERN = re.compile(
+    r"\b(\d{1,4})\s+(?:senior|seniour|senoiur|senoir|staff|principal)\s+(?:engineer|engineers|developer|developers|dev|devs)\b",
+    re.IGNORECASE,
+)
+
+_TIMELINE_PATTERN = re.compile(
+    r"\b(\d{1,3})\s*(day|days|week|weeks)\b",
+    re.IGNORECASE,
+)
+
+_HARD_NO_TOKENS = (
+    "not interested",
+    "remove me",
+    "remove us",
+    "stop contacting",
+    "do not contact",
+)
+
+_GLOBAL_CORRECTION_MEMORY_SOURCES = [
+    "week2_governance",
+    "week8_handoff",
+    "week11_judge",
+]
 
 
 class ChannelHandoffManager:
@@ -91,6 +250,32 @@ class ChannelHandoffManager:
             prospect_id, "email_reply_received"
         ) or self.repository.has_interaction_event(prospect_id, "sms_reply_received")
 
+    def _booking_link_was_shared_by_email(self, prospect_id: str) -> bool:
+        return self.repository.has_interaction_event(prospect_id, "booking_link_shared")
+
+    def _has_sms_opt_in_request(self, message_body: str) -> bool:
+        return bool(_SMS_OPT_IN_PATTERN.search(message_body))
+
+    def _is_sms_content_request(self, message_body: str) -> bool:
+        lowered = message_body.lower()
+        return self._has_sms_opt_in_request(lowered) and any(
+            token in lowered for token in _SMS_CONTENT_REQUEST_TOKENS
+        )
+
+    def _is_sms_booking_followup_request(self, prospect_id: str, message_body: str) -> bool:
+        lowered = message_body.lower()
+        if not self._has_sms_opt_in_request(lowered):
+            return False
+        if self._is_sms_content_request(lowered):
+            return False
+        return any(token in lowered for token in _SMS_LOGISTICS_HINT_TOKENS)
+
+    def _is_generic_sms_request(self, message_body: str) -> bool:
+        lowered = message_body.lower()
+        return self._has_sms_opt_in_request(lowered) and not self._is_sms_content_request(
+            lowered
+        ) and not any(token in lowered for token in _SMS_LOGISTICS_HINT_TOKENS)
+
     def _sms_eligible(
         self,
         prospect_id: str,
@@ -103,13 +288,97 @@ class ChannelHandoffManager:
 
         Returns (eligible: bool, reason: str).
         """
-        if any(token in message_body for token in _SMS_OPT_IN_TOKENS):
+        if not has_phone:
+            return False, "no_phone_on_file"
+        if not self._booking_link_was_shared_by_email(prospect_id):
+            return False, "booking_link_not_yet_shared_by_email"
+        if self._has_sms_opt_in_request(message_body):
             return True, "prospect_asked_for_sms"
         if scheduling_intent and has_phone:
             return True, "scheduling_intent_with_phone_on_file"
         if self.can_send_sms(prospect_id) and scheduling_intent:
             return True, "warm_lead_scheduling_focused"
         return False, "sms_gate_not_met"
+
+    def _sms_booking_reply(
+        self,
+        snapshot: ProspectEnrichmentResponse,
+        booking_link: str,
+        *,
+        sms_result: ToolExecutionResult | None,
+        sms_reason: str,
+    ) -> tuple[str, str]:
+        name = snapshot.prospect.contact_name or "there"
+
+        if sms_reason == "no_phone_on_file":
+            return (
+                f"Discovery Call — Booking Link for {snapshot.prospect.company_name}",
+                (
+                    f"Hi {name},\n\n"
+                    "Happy to send the discovery-call details by SMS once you share the best mobile number for this thread. "
+                    f"In the meantime, you can use the booking link here: {booking_link}\n\n"
+                    "If you would rather reply with two windows that work next week, I can coordinate manually.\n\n"
+                    "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+                ),
+            )
+
+        if sms_reason == "booking_link_not_yet_shared_by_email":
+            return (
+                f"Discovery Call — Booking Link for {snapshot.prospect.company_name}",
+                (
+                    f"Hi {name},\n\n"
+                    "I need to share the booking link by email first before we switch this scheduling thread to SMS. "
+                    f"You can confirm the best slot here: {booking_link}\n\n"
+                    "If you still want the follow-up by SMS after this email, reply here once you've reviewed the link and I can continue from there.\n\n"
+                    "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+                ),
+            )
+
+        if sms_result is None:
+            return self._booking_reply(snapshot, booking_link)
+
+        if sms_result.status == "executed":
+            opener = "I sent the discovery-call booking link by SMS as requested."
+        elif sms_result.status == "previewed":
+            opener = "I prepared the discovery-call booking link for SMS delivery and I am including it here as well so you have it immediately."
+        else:
+            opener = "I could not complete the SMS handoff automatically, so I am including the booking link here by email now."
+
+        return (
+            f"Discovery Call — Booking Link for {snapshot.prospect.company_name}",
+            (
+                f"Hi {name},\n\n"
+                f"{opener}\n\n"
+                f"You can confirm the best slot here: {booking_link}\n\n"
+                "If none of the times fit, reply with two windows that work for you next week and I will coordinate manually.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            ),
+        )
+
+    def _is_legal_handoff_request(self, body: str) -> bool:
+        return any(token in body for token in _LEGAL_HANDOFF_TOKENS)
+
+    def _is_custom_pricing_handoff_request(self, body: str) -> bool:
+        return any(token in body for token in _CUSTOM_PRICING_SCOPE_TOKENS)
+
+    def _is_urgent_concession_request(self, body: str) -> bool:
+        return any(token in body for token in _URGENT_CONCESSION_TOKENS)
+
+    def _is_impossible_capacity_pricing_request(self, body: str) -> bool:
+        lowered = body.lower()
+        if not any(token in lowered for token in ("junior pricing", "junior price", "floor pricing", "discount")):
+            return False
+
+        headcount_match = _CAPACITY_HEADCOUNT_PATTERN.search(lowered)
+        timeline_match = _TIMELINE_PATTERN.search(lowered)
+        if not headcount_match or not timeline_match:
+            return bool(_IMPOSSIBLE_CAPACITY_PATTERN.search(lowered))
+
+        headcount = int(headcount_match.group(1))
+        timeline_value = int(timeline_match.group(1))
+        timeline_unit = timeline_match.group(2)
+        short_window = timeline_value <= 45 if timeline_unit.startswith("day") else timeline_value <= 6
+        return headcount >= 10 and short_window
 
     # ------------------------------------------------------------------
     # Reply builders (seed-grounded)
@@ -230,6 +499,86 @@ class ChannelHandoffManager:
             f"{signal_note}\n\n"
             "The right test is whether your current constraint is delivery capacity, a specific "
             "platform or data gap, or something else entirely. Which is closest?\n\n"
+            "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+        )
+
+    def _extract_capability_focus(self, body: str) -> str | None:
+        lowered = body.lower()
+        if any(token in lowered for token in _MODELING_FOCUS_TOKENS):
+            return "modeling"
+        if any(token in lowered for token in _MLOPS_FOCUS_TOKENS):
+            return "MLOps"
+        if any(token in lowered for token in _DATA_PIPELINE_FOCUS_TOKENS):
+            return "data pipeline"
+        if any(token in lowered for token in _APPLIED_ML_FOCUS_TOKENS):
+            return "applied ML feature delivery"
+        return None
+
+    def _capability_gap_reply(
+        self,
+        snapshot: ProspectEnrichmentResponse,
+        *,
+        inbound_body: str,
+    ) -> tuple[str, str]:
+        """Respond directly to explicit AI/ML capability-gap intent."""
+        name = snapshot.prospect.contact_name or "there"
+        focus = self._extract_capability_focus(inbound_body)
+        signal_note = self._public_signal_note(snapshot)
+        matched_case = seed_materials.find_case_study(snapshot.prospect.primary_segment)
+        case_line = (
+            f"\n\nRelevant example: {matched_case.quotable}"
+            if matched_case
+            else ""
+        )
+        if focus == "modeling":
+            return (
+                "Tenacious Intelligence — Modeling Capability Gap",
+                f"Hi {name},\n\n"
+                "Understood — if the gap is on modeling specifically, the next useful step is to narrow "
+                "where it is slowing you down most right now: model selection, training or fine-tuning, "
+                "evaluation, or production inference.\n\n"
+                "If you share which of those is the blocker, I can route this to a delivery lead and propose "
+                "a focused 15-minute scoping call around that modeling workstream.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+        if focus == "MLOps":
+            return (
+                "Tenacious Intelligence — MLOps Capability Gap",
+                f"Hi {name},\n\n"
+                "Understood — if the gap is on MLOps, the next useful step is to narrow whether the blocker is "
+                "deployment, monitoring, experiment tracking, or release workflow.\n\n"
+                "If you share which part is creating the most drag, I can route this to a delivery lead and propose "
+                "a focused scoping call around that MLOps workstream.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+        if focus == "data pipeline":
+            return (
+                "Tenacious Intelligence — Data Pipeline Gap",
+                f"Hi {name},\n\n"
+                "Understood — if the gap is in the data pipeline, the next useful step is to narrow whether the blocker is "
+                "ingestion, training-data quality, feature pipelines, or upstream reliability.\n\n"
+                "If you share which part is the main constraint, I can route this to a delivery lead and propose "
+                "a focused scoping call around that pipeline workstream.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+        if focus == "applied ML feature delivery":
+            return (
+                "Tenacious Intelligence — Applied ML Delivery Gap",
+                f"Hi {name},\n\n"
+                "Understood — if the need is around applied ML feature delivery, the next useful step is to narrow "
+                "the use case first: copilots or agents, ranking or recommendation, forecasting, or document intelligence.\n\n"
+                "If you share which use case matters most, I can route this to a delivery lead and propose a focused "
+                "scoping call around that workstream.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+        return (
+            "Tenacious Intelligence — AI/ML Capability Gap",
+            f"Hi {name},\n\n"
+            "Understood — if your main need is an AI/ML capability gap, the most useful next step "
+            "is to define the exact scope first (modeling, MLOps, data pipeline, or applied ML feature delivery).\n\n"
+            f"{signal_note}{case_line}\n\n"
+            "If you share your top priority, I can route this to a delivery lead and propose a "
+            "focused 15-minute scoping call with concrete options.\n\n"
             "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
         )
 
@@ -359,6 +708,18 @@ class ChannelHandoffManager:
         fallback_body: str,
         extra_context: dict[str, object],
     ) -> str:
+        recommendation_memory = self.repository.recent_recommendation_memory_blended(
+            prospect_id=snapshot.prospect.prospect_id,
+            limit=6,
+            local_limit=6,
+            global_limit=6,
+            global_min_occurrences=1,
+            global_sources=_GLOBAL_CORRECTION_MEMORY_SOURCES,
+        )
+        correction_history = self.repository.list_correction_history(
+            prospect_id=snapshot.prospect.prospect_id,
+            limit=6,
+        )
         draft = generation_service.draft_email_from_scaffold(
             trace_id=getattr(snapshot, "trace_id", None),
             prospect_id=snapshot.prospect.prospect_id,
@@ -373,6 +734,8 @@ class ChannelHandoffManager:
                 "signals": [signal.summary for signal in snapshot.hiring_signal_brief.signals[:4]],
                 "safe_gap_framing": snapshot.competitor_gap_brief.safe_gap_framing,
                 "do_not_claim": snapshot.hiring_signal_brief.do_not_claim,
+                "recommendation_memory": recommendation_memory,
+                "correction_history": correction_history,
                 **extra_context,
             },
         )
@@ -389,6 +752,7 @@ class ChannelHandoffManager:
         body: str | None = None,
         include_booking_link: bool = False,
         force_allow: bool = False,
+        inbound_body: str | None = None,
     ) -> ToolExecutionResult:
         allow_warm_lead = force_allow or self.can_send_sms(snapshot.prospect.prospect_id)
         if include_booking_link:
@@ -399,6 +763,7 @@ class ChannelHandoffManager:
                 contact_name=snapshot.prospect.contact_name,
                 contact_email=snapshot.prospect.contact_email,
                 allow_warm_lead=allow_warm_lead,
+                inbound_body=inbound_body,
                 prospect_context=snapshot.prospect.model_dump(mode="json"),
                 hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
                 competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
@@ -409,6 +774,7 @@ class ChannelHandoffManager:
                 body=body or "Warm-lead scheduling handoff for Tenacious.",
                 prospect_id=snapshot.prospect.prospect_id,
                 allow_warm_lead=allow_warm_lead,
+                inbound_body=inbound_body,
                 prospect_context=snapshot.prospect.model_dump(mode="json"),
                 hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
                 competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
@@ -499,6 +865,77 @@ class ChannelHandoffManager:
                 "gettenacious.com"
             )
 
+        # ---- Hard no (route to suppression/human) -------------------
+        elif any(token in body for token in _HARD_NO_TOKENS):
+            next_action = "handoff_human"
+            channel = "human"
+            risk_flags.append("hard_no_route_human")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Preference noted\n\n"
+                f"Hi {name},\n\n"
+                "Thanks for the clear note. I will route this to our team to ensure "
+                "your preference is handled correctly before any further outreach.\n\n"
+                "Best regards,\n"
+                "The Tenacious Team\n"
+                "Tenacious Intelligence Corporation\n"
+                "gettenacious.com"
+            )
+
+        # ---- Legal / contract / reference / compliance --------------
+        elif self._is_legal_handoff_request(body):
+            next_action = "handoff_human"
+            channel = "human"
+            risk_flags.append("legal_handoff_required")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Re: Policy and Terms Request\n\n"
+                f"Hi {name},\n\n"
+                "Thank you for the question. I should route this to a Tenacious delivery lead "
+                "so we do not provide incomplete legal, compliance, or reference details by email.\n\n"
+                "I will pass your request along with context and keep the thread on email.\n\n"
+                "Best regards,\n"
+                "The Tenacious Team\n"
+                "Tenacious Intelligence Corporation\n"
+                "gettenacious.com"
+            )
+
+        # ---- Custom scope pricing / urgent concessions --------------
+        elif self._is_custom_pricing_handoff_request(body) or self._is_urgent_concession_request(body):
+            next_action = "handoff_human"
+            channel = "human"
+            risk_flags.append("custom_pricing_handoff_required")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Re: Custom Pricing Request\n\n"
+                f"Hi {name},\n\n"
+                "Thanks for the pricing question. I can share public ranges, but custom multi-phase "
+                "or concession terms need a delivery lead review before we quote specifics.\n\n"
+                "I will route this for human follow-up with the right scope context.\n\n"
+                "Best regards,\n"
+                "The Tenacious Team\n"
+                "Tenacious Intelligence Corporation\n"
+                "gettenacious.com"
+            )
+
+        # ---- Impossible capacity + junior pricing demands -----------
+        elif self._is_impossible_capacity_pricing_request(body):
+            next_action = "handoff_human"
+            channel = "human"
+            risk_flags.append("impossible_capacity_pricing_claim_blocked")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Re: Capacity and Pricing Request\n\n"
+                f"Hi {name},\n\n"
+                "I cannot confirm that combination of timeline, seniority, and pricing in email. "
+                "This requires a delivery lead capacity and scope review before any commitment.\n\n"
+                "I will route this to human review immediately.\n\n"
+                "Best regards,\n"
+                "The Tenacious Team\n"
+                "Tenacious Intelligence Corporation\n"
+                "gettenacious.com"
+            )
+
         # ---- Curious / "tell me more" ----------------------------------------
         elif any(token in body for token in _DIFFERENTIATION_TOKENS):
             subject, fallback_body = self._differentiation_reply(snapshot)
@@ -509,6 +946,29 @@ class ChannelHandoffManager:
                 fallback_body=fallback_body,
                 extra_context={"inbound_message": message.body, "reply_class": "differentiation"},
             )
+
+        # ---- Explicit capability-gap intent -------------------------
+        elif any(token in body for token in _CAPABILITY_TOKENS) or self._extract_capability_focus(body):
+            risk_flags.append("capability_gap_intent")
+            capability_focus = self._extract_capability_focus(body) or "unspecified"
+            subject, fallback_body = self._capability_gap_reply(
+                snapshot,
+                inbound_body=message.body,
+            )
+            reply = self._rewrite_email_draft(
+                snapshot=snapshot,
+                scenario="capability_gap_reply",
+                fallback_subject=subject,
+                fallback_body=fallback_body,
+                extra_context={
+                    "inbound_message": message.body,
+                    "reply_class": "capability_gap",
+                    "capability_focus": capability_focus,
+                    "progression_rule": "If the prospect already named the capability area, move one step deeper instead of reopening the broad scope split.",
+                },
+            )
+            if capability_focus != "unspecified" and "define the exact scope first" in reply.lower():
+                reply = f"Subject: {subject}\n\n{fallback_body}"
 
         # ---- Curious / "tell me more" ----------------------------------------
         elif any(token in body for token in _CURIOUS_TOKENS):
@@ -561,35 +1021,84 @@ class ChannelHandoffManager:
                 },
             )
 
+        # ---- SMS is logistics-only; substantive content stays on email ----
+        elif self._is_sms_content_request(body):
+            risk_flags.append("sms_logistics_only")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Re: Tenacious follow-up\n\n"
+                f"Hi {name},\n\n"
+                "I can use SMS for booking logistics and scheduling follow-up, but I should keep offer, scope, and commercial details on email so the thread stays accurate and reviewable.\n\n"
+                "If you want, reply here with the main question about the offer or scope and I will answer it directly on email.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+
+        elif self._is_generic_sms_request(body):
+            risk_flags.append("sms_request_needs_specific_logistics")
+            name = snapshot.prospect.contact_name or "there"
+            reply = (
+                f"Subject: Re: Tenacious scheduling follow-up\n\n"
+                f"Hi {name},\n\n"
+                "I already shared the booking link on email, so I do not need to resend the same link by SMS unless you want that specifically for scheduling logistics.\n\n"
+                "If you want the booking link by SMS, say that directly. Otherwise, keep the scheduling thread on email and I will coordinate from there.\n\n"
+                "Best regards,\nThe Tenacious Team\nTenacious Intelligence Corporation\ngettenacious.com"
+            )
+
         # ---- Scheduling intent (book_meeting) ------------------------
-        elif any(token in body for token in _SCHEDULING_TOKENS):
+        elif any(token in body for token in _SCHEDULING_TOKENS) or self._is_sms_booking_followup_request(
+            snapshot.prospect.prospect_id,
+            body,
+        ):
             next_action = "book_meeting"
             channel = "calendar"
-            requested_sms = any(token in body for token in _SMS_OPT_IN_TOKENS)
+            requested_sms = self._has_sms_opt_in_request(body)
+            scheduling_requested = any(token in body for token in _SCHEDULING_TOKENS) or self._is_sms_booking_followup_request(
+                snapshot.prospect.prospect_id,
+                body,
+            )
+            sms_result: ToolExecutionResult | None = None
 
             # SMS is only sent when eligibility criteria are met (see policy at top of file).
             sms_eligible, sms_reason = self._sms_eligible(
                 snapshot.prospect.prospect_id,
                 body,
                 has_phone=bool(snapshot.prospect.contact_phone),
-                scheduling_intent=True,
+                scheduling_intent=scheduling_requested,
             )
 
             if requested_sms and sms_eligible:
-                # Prospect explicitly asked to be texted — email confirms, SMS carries the link.
-                name = snapshot.prospect.contact_name or "there"
-                reply = (
-                    f"Subject: I'll send you the booking details via SMS\n\n"
-                    f"Hi {name},\n\n"
-                    "Great — I'll text you the discovery-call booking link right now. "
-                    "You should receive it on your phone shortly.\n\n"
-                    "If you have any trouble with the link or would prefer a different time, "
-                    "just reply here and I'll sort it out manually.\n\n"
-                    "Best regards,\nThe Tenacious Team\n"
-                    "Tenacious Intelligence Corporation\ngettenacious.com"
+                sms_result = self.prepare_warm_sms_handoff(
+                    snapshot,
+                    include_booking_link=True,
+                    force_allow=True,
+                    inbound_body=message.body,
                 )
-                draft_subject = "I'll send you the booking details via SMS"
-                draft_body = "\n".join(reply.splitlines()[1:]).strip()
+                side_effects.append(sms_result)
+                if sms_result.status == "skipped":
+                    sms_msg = str(sms_result.message or "").lower()
+                    if "warm-lead gate" in sms_msg:
+                        risk_flags.append("sms_warm_lead_gate_blocked")
+                    elif "week 11" in sms_msg or "week 2" in sms_msg or "governance" in sms_msg or "human review" in sms_msg:
+                        risk_flags.append("sms_blocked_by_policy")
+                    else:
+                        risk_flags.append("sms_handoff_skipped")
+                elif sms_result.status == "error":
+                    risk_flags.append("sms_handoff_failed")
+
+            if requested_sms:
+                booking_link, _ = calcom_client.generate_booking_link(
+                    company_name=snapshot.prospect.company_name,
+                    contact_email=snapshot.prospect.contact_email,
+                    prospect_id=snapshot.prospect.prospect_id,
+                    source_channel="email",
+                )
+                draft_subject, draft_body = self._sms_booking_reply(
+                    snapshot,
+                    booking_link,
+                    sms_result=sms_result,
+                    sms_reason=sms_reason,
+                )
+                reply = f"Subject: {draft_subject}\n\n{draft_body}"
             else:
                 booking_link, _ = calcom_client.generate_booking_link(
                     company_name=snapshot.prospect.company_name,
@@ -620,21 +1129,21 @@ class ChannelHandoffManager:
                 prospect_context=snapshot.prospect.model_dump(mode="json"),
                 hiring_signal_brief=snapshot.hiring_signal_brief.model_dump(mode="json"),
                 competitor_gap_brief=snapshot.competitor_gap_brief.model_dump(mode="json"),
+                inbound_body=message.body,
             )
             side_effects.append(email_result)
             if email_result.status == "error":
                 risk_flags.append("email_booking_send_failed")
-
-            if sms_eligible:
-                sms_result = self.prepare_warm_sms_handoff(
-                    snapshot, include_booking_link=True, force_allow=True
+            elif email_result.status == "executed":
+                self.repository.record_interaction_event(
+                    snapshot.prospect.prospect_id,
+                    "booking_link_shared",
+                    channel="email",
+                    provider=email_channel.status().name,
+                    payload={"subject": draft_subject},
                 )
-                side_effects.append(sms_result)
-                if sms_result.status == "skipped":
-                    risk_flags.append("sms_warm_lead_gate_blocked")
-                elif sms_result.status == "error":
-                    risk_flags.append("sms_handoff_failed")
-            else:
+
+            if not sms_eligible:
                 risk_flags.append(f"sms_skipped:{sms_reason}")
 
             if any(token in body for token in _VOICE_OPT_IN_TOKENS):
